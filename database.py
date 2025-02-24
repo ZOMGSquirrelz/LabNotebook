@@ -5,8 +5,8 @@ connection_string = """DRIVER={ODBC Driver 18 for SQL Server};
                     SERVER=127.0.0.1,1433;
                     DATABASE=LabNotebook;
                     UID=econard;
-                    PWD=Freeze*6;
-                    TrustServerCertificate=yes"""
+                    PWD=***********;        
+                    TrustServerCertificate=yes"""    #Enter password
 
 def get_db_connection():
     """Returns a database connection."""
