@@ -1,6 +1,5 @@
 import customtkinter as ctk
 from PIL import Image
-
 import database
 import functions
 
@@ -23,11 +22,11 @@ class MainPage(ctk.CTkFrame):
         self.label_logo.pack(pady=10)
 
         #Currently a test button
-        self.test_button = ctk.CTkButton(self, text="Show Test List", command=self.show_tests)
+        self.test_button = ctk.CTkButton(self, text="Search for Project", command=self.open_project_search_window)
         self.test_button.pack(pady=5)
 
         #Button to open the new project creation window - ProjectCreationWindow
-        self.create_project_button = ctk.CTkButton(self, text="New Project", command=self.open_project_window)
+        self.create_project_button = ctk.CTkButton(self, text="New Project", command=self.open_project_creation_window)
         self.create_project_button.pack(pady=5)
 
         #Labal for the test button output
@@ -35,20 +34,157 @@ class MainPage(ctk.CTkFrame):
         self.label_test_list.pack(pady=5)
 
         #Store reference to the project window
-        self.project_window = None
+        self.project_creation_window = None
+        self.project_search_window = None
 
     #This is part of the test button
     def show_tests(self):
-        test_list = functions.set_test_list()
-        self.label_test_list.configure(text=test_list)
+        #test_list = functions.set_test_list()
+        project_list = database.get_projects_list()
+        self.label_test_list.configure(text=project_list)
+
+    #Open ProjectSearchWindow if it isn't already open
+    def open_project_search_window(self):
+        if self.project_search_window is None or not self.project_search_window.winfo_exists():
+            self.project_search_window = ProjectSearchWindow(self)  #Create new window
+            self.project_search_window.grab_set()  #Make other pages unclickable
+        else:
+            self.project_search_window.focus()  #If already open, bring it to front
 
     #Open ProjectCreationWindow if it isn't already open
-    def open_project_window(self):
+    def open_project_creation_window(self):
+        if self.project_creation_window is None or not self.project_creation_window.winfo_exists():
+            self.project_creation_window = ProjectCreationWindow(self)  #Create new window
+            self.project_creation_window.grab_set()  #Make other pages unclickable
+        else:
+            self.project_creation_window.focus()  #If already open, bring it to front
+
+#ProjectSearchWindow configuration
+class ProjectSearchWindow(ctk.CTkToplevel):
+    def __init__(self, parent):
+        super().__init__(parent)
+
+        self.project_window = None
+        self.selected_search_status = []
+        self.list_of_status = database.get_status_list()
+        self.status_vars = {}
+
+        #Page title creation and window size
+        self.title("Project Search")
+        self.geometry("1000x750")
+
+        #Set up the top frame of the page
+        self.frame_top = ctk.CTkFrame(self, fg_color="transparent")
+        self.frame_top.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
+
+        # Set up the bottom frame of the page
+        self.frame_middle = ctk.CTkFrame(self, fg_color="transparent")
+        self.frame_middle.grid(row=2, column=0, padx=5, pady=5, sticky="w")
+
+        #Set up the bottom frame of the page
+        self.frame_bottom = ctk.CTkFrame(self, fg_color="transparent")
+        self.frame_bottom.grid(row=3, column=0, padx=5, pady=5, sticky="w")
+
+        #Logo creation and placement
+        self.label_logo = ctk.CTkLabel(self.frame_top, text="", image=secondary_logo)
+        self.label_logo.grid(row=0, column=0, padx=10, pady=10)
+
+        #Title for the top of the ProjectCreationWindow
+        self.title_label = ctk.CTkLabel(self.frame_top, text="Project Search", font=("", 20))
+        self.title_label.grid(row=0, column=1, padx=10, pady=5)
+
+        #Search button creation and placement
+        self.button_search_all = ctk.CTkButton(self.frame_top, text="Search All", command=lambda: self.search_projects())
+        self.button_search_all.grid(row=1, column=1, padx=5, pady=5)
+
+        #Set up status filter checkboxes
+        filter_start_column =  2
+        for status in self.list_of_status:
+            var = ctk.BooleanVar()
+            checkbox = ctk.CTkCheckBox(self.frame_top, text=status, variable=var)
+            checkbox.grid(row=1, column=filter_start_column, padx=5, pady=5)
+            self.status_vars[status] = var
+            filter_start_column += 1
+
+        #Label to dispaly the resulting projects
+        self.label_project_results = ctk.CTkLabel(self.frame_middle, text="")
+        self.label_project_results.grid(row=0, column=0, padx=5, pady=5)
+
+    def search_projects(self):
+        self.selected_search_status = [status for status, var in self.status_vars.items() if var.get()]
+        if not self.selected_search_status:
+            projects = database.get_all_projects_list()
+        else:
+            projects = database.get_filtered_projects_list(self.selected_search_status)
+
+        # if projects:
+        #     project_text = "\n".join([f'Project ID: {p[0]} | Status: {p[1]}' for p in projects])
+        #     self.label_project_results.configure(text=project_text)
+        if projects:
+            for index, project in enumerate(projects):
+                project_id, status = project
+                label = ctk.CTkLabel(self.frame_middle, text=f'Project: {project_id} | Status: {status}')
+                label.grid(row=index, column=0, padx=5, pady=5)
+
+                button = ctk.CTkButton(self.frame_middle, text="View Project", command=lambda p_id=project_id: self.open_project_window(p_id))
+                button.grid(row=index, column=1, padx=5, pady=5)
+        else:
+            self.label_project_results.configure(text="No projects found.")
+            
+    #Open ProjectCreationWindow if it isn't already open
+    def open_project_window(self, project_id):
         if self.project_window is None or not self.project_window.winfo_exists():
-            self.project_window = ProjectCreationWindow(self)  #Create new window
+            self.project_window = ProjectDetailsWindow(self, project_id)  #Create new window
             self.project_window.grab_set()  #Make other pages unclickable
         else:
             self.project_window.focus()  #If already open, bring it to front
+
+#ProjectDetailsWindow configuration
+class ProjectDetailsWindow(ctk.CTkToplevel):
+    def __init__(self, parent, project_id):
+        super().__init__(parent)
+
+        self.project_id = project_id
+
+        #Page title creation and window size
+        self.title("Project Details")
+        self.geometry("1000x750")
+
+
+        #Set up the top frame of the page
+        self.frame_top = ctk.CTkFrame(self, fg_color="transparent")
+        self.frame_top.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
+
+        # Set up the bottom frame of the page
+        self.frame_middle = ctk.CTkFrame(self, fg_color="transparent")
+        self.frame_middle.grid(row=2, column=0, padx=5, pady=5, sticky="w")
+
+        #Set up the bottom frame of the page
+        self.frame_bottom = ctk.CTkFrame(self, fg_color="transparent")
+        self.frame_bottom.grid(row=3, column=0, padx=5, pady=5, sticky="w")
+
+        #Logo creation and placement
+        self.label_logo = ctk.CTkLabel(self.frame_top, text="", image=secondary_logo)
+        self.label_logo.grid(row=0, column=0, padx=10, pady=10)
+
+        #Title for the top of the ProjectCreationWindow
+        self.title_label = ctk.CTkLabel(self.frame_top, text="Project Details", font=("", 20))
+        self.title_label.grid(row=0, column=1, padx=10, pady=5)
+
+        #Label to show project details
+        self.label_project_details = ctk.CTkLabel(self.frame_top, text=self.get_project_details())
+        self.label_project_details.grid(row=1, column=1, padx=5, pady=5)
+
+    #Puts project details into a printable statement
+    def get_project_details(self):
+        details = database.get_project_details((self.project_id))
+        details_report = "Project: {} | Status: {} | Creation Date: {} | Sample Count: {}".format(details[0], details[1], details[2], details[3])
+        print(type(details[0]))         #Debugging
+        print(type(details[1]))
+        print(type(details[2]))
+        print(type(details[3]))
+        return details_report
+
 
 #ProjectCreationWindow configuration
 class ProjectCreationWindow(ctk.CTkToplevel):
@@ -65,9 +201,6 @@ class ProjectCreationWindow(ctk.CTkToplevel):
         #Page title creation and window size
         self.title("Project Creation")
         self.geometry("1000x750")
-
-        #Grid configuration
-        self.grid_columnconfigure(0, weight=1)
 
         #Set up the top frame of the page
         self.frame_top = ctk.CTkFrame(self, fg_color="transparent")
@@ -174,8 +307,8 @@ class ProjectCreationWindow(ctk.CTkToplevel):
         print("Database method ran")
         #self.destroy()
 
+#TestSelectionWindow configuration
 class TestSelectionWindow(ctk.CTkToplevel):
-    """Project creation in a separate window."""
     def __init__(self, parent):
         super().__init__(parent)
 
@@ -232,6 +365,8 @@ class TestSelectionWindow(ctk.CTkToplevel):
 
     #Confirm selected tests and destory the window
     def submit_selected_tests(self):
-        self.selected_tests = [test for test, var in self.checkbox_selection.items() if var.get()]
+        for test, var in self.checkbox_selection.items():
+            if var.get() == True:
+                self.selected_tests.append(test)
         self.parent.store_selected_tests(self.selected_tests)
         self.destroy()
