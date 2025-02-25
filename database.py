@@ -1,20 +1,22 @@
 import pyodbc
+from datetime import date
+import functions
 
 # Database connection string
 connection_string = """DRIVER={ODBC Driver 18 for SQL Server};
                     SERVER=127.0.0.1,1433;
                     DATABASE=LabNotebook;
                     UID=econard;
-                    PWD=***********;        
-                    TrustServerCertificate=yes"""    #Enter password
+                    PWD=Freeze*6;
+                    TrustServerCertificate=yes"""
 
-def get_db_connection():
-    """Returns a database connection."""
+#Database connection
+def get_database_connection():
     return pyodbc.connect(connection_string)
 
+#Gets the test list from the SQL table
 def get_test_list():
-    """Fetches test list from SQL database."""
-    with get_db_connection() as conn:
+    with get_database_connection() as conn:
         cursor = conn.cursor()  # Create cursor
         query = """SELECT Count(*) FROM Test_LU"""  # SQL query to get count of test list
         cursor.execute(query)  # Run query
@@ -30,8 +32,9 @@ def get_test_list():
             current_list_spot += 1  # Increase current_list_spot by 1
         return test_list
 
+#Returns current project number from the SQL table
 def get_current_project_number():
-    with get_db_connection() as conn:
+    with get_database_connection() as conn:
         cursor = conn.cursor()                          #Create cursor
         query = """SELECT TOP 1 Project_ID              
                     FROM Project 
@@ -42,7 +45,7 @@ def get_current_project_number():
 
 #Function to get the last sample number to create a new project
 def get_current_sample_number():
-    with get_db_connection() as conn:
+    with get_database_connection() as conn:
         cursor = conn.cursor()                          #Create cursor
         query = """SELECT TOP 1 Sample_Number              
                     FROM Sample
@@ -51,14 +54,37 @@ def get_current_sample_number():
         current_sample_number = cursor.fetchone()[0]   #Set current_sample_number to the top most value from query results
         return current_sample_number                   #Return current_sample_number
 
+#Function to get the last sample number to create a new project
+def get_current_sample_id():
+    with get_database_connection() as conn:
+        cursor = conn.cursor()                          #Create cursor
+        query = """SELECT TOP 1 Sample_ID              
+                    FROM Sample
+                    ORDER BY Sample_ID DESC"""         #SQL query to get list of Sample_Numbers, descending order by the Sample_ID
+        cursor.execute(query)                           #Run query
+        current_sample_number = cursor.fetchone()[0]   #Set current_sample_number to the top most value from query results
+        return current_sample_number                   #Return current_sample_number
 
-def submit_project_creation(project_number, sql_status, creation_date, sample_id, sample_number, test):
-    with get_db_connection() as conn:
+
+#Submits the project and samples into the database
+def submit_project_creation(project_number, ui_test_dict):
+    sql_status = 1      #Set status to open for initial entry
+    creation_date = date.today()        #Set creation date to today
+    sample_number = get_current_sample_number() + 1     #Gets the most recently used sample number and adds one
+    sample_id = get_current_sample_id() + 1     #Gets the most recently used sample ID and adds one
+    with get_database_connection() as conn:
         cursor = conn.cursor()                                    #Create cursor
-        project_insert_query = "INSERT INTO Project (Project_ID, Status, Date_Created) VALUES(?, ?, ?)"  # SQL query to insert new project info
+        project_insert_query = "INSERT INTO Project (Project_ID, Status, Date_Created) VALUES(?, ?, ?)"  #SQL query to insert new project info
         cursor.execute(project_insert_query,(project_number, sql_status, creation_date))  #Run project_insert_query with project info
-        # sample_insert_query = "INSERT INTO Sample (Sample_ID, Project_ID, Sample_Number, Test) VALUES(?, ?, ?, ?)"
-        # cursor.execute(sample_insert_query, )
+        test_list_all = list(ui_test_dict.values())     #Gets all values from ui_tst_dict and puts them into a list
+        sample_id_counter = sample_id
+        for sample in test_list_all:        #Goes through each 'sample' which corresponds to a list of tests in test_list_all
+            sample = functions.convert_to_sql_test_list(sample)     #Converts the list of tests to SQL codes
+            for test in sample:     #Goes through each test within the list
+                sample_insert_query = "INSERT INTO Sample (Sample_ID, Project_ID, Sample_Number, Test) VALUES(?, ?, ?, ?)"  #SQL query to insert each sample
+                cursor.execute(sample_insert_query, sample_id_counter, project_number, sample_number, test)     #Run query
+                sample_id_counter += 1      #Increase sample_id_counter (SQL PK)
+            sample_number += 1      #Increase sample_number once all tests submitted for the sample
 
         #conn.commit()                                             #Commit insert into SQL
 
