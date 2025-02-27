@@ -7,8 +7,8 @@ connection_string = """DRIVER={ODBC Driver 18 for SQL Server};
                     SERVER=127.0.0.1,1433;
                     DATABASE=LabNotebook;
                     UID=econard;
-                    PWD=Freeze*6;
-                    TrustServerCertificate=yes"""
+                    PWD=**********;
+                    TrustServerCertificate=yes"""          #Password removed for repository posting
 
 #Database connection
 def get_database_connection():
