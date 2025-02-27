@@ -2,13 +2,16 @@ import pyodbc
 from datetime import date
 import functions
 
+UID = input("Enter database username: ")
+password = input("Enter database password: ")
+
 # Database connection string
-connection_string = """DRIVER={ODBC Driver 18 for SQL Server};
+connection_string = f"""DRIVER={{ODBC Driver 18 for SQL Server}};
                     SERVER=127.0.0.1,1433;
                     DATABASE=LabNotebook;
-                    UID=econard;
-                    PWD=**********;
-                    TrustServerCertificate=yes"""          #Password removed for repository posting
+                    UID={UID};
+                    PWD={password};
+                    TrustServerCertificate=yes"""
 
 #Database connection
 def get_database_connection():

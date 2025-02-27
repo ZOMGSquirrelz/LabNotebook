@@ -12,5 +12,6 @@ class MyApp(ctk.CTk):
         self.main_page.pack(fill="both", expand=True)
 
 if __name__ == "__main__":
+
     app = MyApp()
     app.mainloop()
