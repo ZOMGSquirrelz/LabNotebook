@@ -123,11 +123,20 @@ class ProjectSearchWindow(ctk.CTkToplevel):
         if projects:
             for index, project in enumerate(projects):
                 project_id, status = project
-                label = ctk.CTkLabel(self.frame_middle, text=f'Project: {project_id} | Status: {status}')
+                label = ctk.CTkLabel(self.frame_middle, text=f'Project: {project_id} | Status: {status}', font=("TkDefaultFont", 16))
                 label.grid(row=index, column=0, padx=5, pady=5)
 
-                button = ctk.CTkButton(self.frame_middle, text="View Project", command=lambda p_id=project_id: self.open_project_window(p_id))
-                button.grid(row=index, column=1, padx=5, pady=5)
+                button_view = ctk.CTkButton(self.frame_middle, text="View Project", command=lambda p_id=project_id: self.open_project_window(p_id))
+                button_view.grid(row=index, column=1, padx=5, pady=5)
+
+                button_enter = ctk.CTkButton(self.frame_middle, text="Enter Results", command=lambda p_id=project_id: self.open_project_window(p_id))
+                button_enter.grid(row=index, column=2, padx=5, pady=5)
+
+                button_review = ctk.CTkButton(self.frame_middle, text="Review Project", command=lambda p_id=project_id: self.open_project_window(p_id))
+                button_review.grid(row=index, column=3, padx=5, pady=5)
+
+                button_report = ctk.CTkButton(self.frame_middle, text="View Project", command=lambda p_id=project_id: self.open_project_window(p_id))
+                button_report.grid(row=index, column=4, padx=5, pady=5)
         else:
             self.label_project_results.configure(text="No projects found.")
             

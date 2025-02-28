@@ -1,9 +1,13 @@
 import pyodbc
 from datetime import date
 import functions
+from dotenv import load_dotenv
+import os
 
-UID = input("Enter database username: ")
-password = input("Enter database password: ")
+load_dotenv()
+
+UID = os.getenv("DB_USER")
+password = os.getenv("DB_PASSWORD")
 
 # Database connection string
 connection_string = f"""DRIVER={{ODBC Driver 18 for SQL Server}};
