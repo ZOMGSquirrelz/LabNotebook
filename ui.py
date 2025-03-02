@@ -65,6 +65,9 @@ class ProjectSearchWindow(ctk.CTkToplevel):
         super().__init__(parent)
 
         self.project_window = None
+        self.results_window = None
+        self.review_window = None
+        self.report_window = None
         self.selected_search_status = []
         self.list_of_status = database.get_status_list()
         self.status_vars = {}
@@ -117,36 +120,73 @@ class ProjectSearchWindow(ctk.CTkToplevel):
         else:
             projects = database.get_filtered_projects_list(self.selected_search_status)
 
-        # if projects:
-        #     project_text = "\n".join([f'Project ID: {p[0]} | Status: {p[1]}' for p in projects])
-        #     self.label_project_results.configure(text=project_text)
         if projects:
             for index, project in enumerate(projects):
                 project_id, status = project
                 label = ctk.CTkLabel(self.frame_middle, text=f'Project: {project_id} | Status: {status}', font=("TkDefaultFont", 16))
                 label.grid(row=index, column=0, padx=5, pady=5)
 
+                #Buttons to open various project windows
                 button_view = ctk.CTkButton(self.frame_middle, text="View Project", command=lambda p_id=project_id: self.open_project_window(p_id))
                 button_view.grid(row=index, column=1, padx=5, pady=5)
 
-                button_enter = ctk.CTkButton(self.frame_middle, text="Enter Results", command=lambda p_id=project_id: self.open_project_window(p_id))
+                button_enter = ctk.CTkButton(self.frame_middle, text="Enter Results", command=lambda p_id=project_id: self.open_results_window(p_id))
                 button_enter.grid(row=index, column=2, padx=5, pady=5)
 
-                button_review = ctk.CTkButton(self.frame_middle, text="Review Project", command=lambda p_id=project_id: self.open_project_window(p_id))
+                button_review = ctk.CTkButton(self.frame_middle, text="Review Project", command=lambda p_id=project_id: self.open_review_window(p_id))
                 button_review.grid(row=index, column=3, padx=5, pady=5)
 
-                button_report = ctk.CTkButton(self.frame_middle, text="View Project", command=lambda p_id=project_id: self.open_project_window(p_id))
+                button_report = ctk.CTkButton(self.frame_middle, text="View Report", command=lambda p_id=project_id: self.open_report_window(p_id))
                 button_report.grid(row=index, column=4, padx=5, pady=5)
+
+                if status == "Closed":
+                    button_enter.configure(state="disabled")
+                    button_review.configure(state="disabled")
+                elif status == "In Progress":
+                    button_review.configure(state="disabled")
+                    button_report.configure(state="disabled")
+                elif status == "Review":
+                    button_enter.configure(state="disabled")
+                    button_report.configure(state="disabled")
+                elif status == "Open":
+                    button_review.configure(state="disabled")
+                    button_report.configure(state="disabled")
         else:
             self.label_project_results.configure(text="No projects found.")
+
+
             
-    #Open ProjectCreationWindow if it isn't already open
+    #Open ProjectDetailsWindow if it isn't already open
     def open_project_window(self, project_id):
         if self.project_window is None or not self.project_window.winfo_exists():
             self.project_window = ProjectDetailsWindow(self, project_id)  #Create new window
             self.project_window.grab_set()  #Make other pages unclickable
         else:
             self.project_window.focus()  #If already open, bring it to front
+
+    #Open ResultsEntryWindow if it isn't already open
+    def open_results_window(self, project_id):
+        if self.results_window is None or not self.results_window.winfo_exists():
+            self.results_window = ResultEntryWindow(self, project_id)  #Create new window
+            self.results_window.grab_set()  #Make other pages unclickable
+        else:
+            self.results_window.focus()  #If already open, bring it to front
+
+    #Open ResultReviewWindow if it isn't already open
+    def open_review_window(self, project_id):
+        if self.review_window is None or not self.review_window.winfo_exists():
+            self.review_window = ResultReviewWindow(self, project_id)  #Create new window
+            self.review_window.grab_set()  #Make other pages unclickable
+        else:
+            self.review_window.focus()  #If already open, bring it to front
+
+    #Open ProjectReportWindow if it isn't already open
+    def open_report_window(self, project_id):
+        if self.report_window is None or not self.report_window.winfo_exists():
+            self.report_window = ProjectReportWindow(self, project_id)  #Create new window
+            self.report_window.grab_set()  #Make other pages unclickable
+        else:
+            self.report_window.focus()  #If already open, bring it to front
 
 #ProjectDetailsWindow configuration
 class ProjectDetailsWindow(ctk.CTkToplevel):
@@ -158,7 +198,6 @@ class ProjectDetailsWindow(ctk.CTkToplevel):
         #Page title creation and window size
         self.title("Project Details")
         self.geometry("1000x750")
-
 
         #Set up the top frame of the page
         self.frame_top = ctk.CTkFrame(self, fg_color="transparent")
@@ -194,6 +233,98 @@ class ProjectDetailsWindow(ctk.CTkToplevel):
         print(type(details[3]))
         return details_report
 
+#ProjectDetailsWindow configuration
+class ResultEntryWindow(ctk.CTkToplevel):
+    def __init__(self, parent, project_id):
+        super().__init__(parent)
+
+        self.project_id = project_id
+
+        #Page title creation and window size
+        self.title("Result Entry")
+        self.geometry("1000x750")
+
+        #Set up the top frame of the page
+        self.frame_top = ctk.CTkFrame(self, fg_color="transparent")
+        self.frame_top.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
+
+        # Set up the bottom frame of the page
+        self.frame_middle = ctk.CTkFrame(self, fg_color="transparent")
+        self.frame_middle.grid(row=2, column=0, padx=5, pady=5, sticky="w")
+
+        #Set up the bottom frame of the page
+        self.frame_bottom = ctk.CTkFrame(self, fg_color="transparent")
+        self.frame_bottom.grid(row=3, column=0, padx=5, pady=5, sticky="w")
+
+        #Logo creation and placement
+        self.label_logo = ctk.CTkLabel(self.frame_top, text="", image=secondary_logo)
+        self.label_logo.grid(row=0, column=0, padx=10, pady=10)
+
+        #Title for the top of the ProjectCreationWindow
+        self.title_label = ctk.CTkLabel(self.frame_top, text="Result Entry", font=("", 20))
+        self.title_label.grid(row=0, column=1, padx=10, pady=5)
+
+#ProjectDetailsWindow configuration
+class ResultReviewWindow(ctk.CTkToplevel):
+    def __init__(self, parent, project_id):
+        super().__init__(parent)
+
+        self.project_id = project_id
+
+        #Page title creation and window size
+        self.title("Result Review")
+        self.geometry("1000x750")
+
+        #Set up the top frame of the page
+        self.frame_top = ctk.CTkFrame(self, fg_color="transparent")
+        self.frame_top.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
+
+        # Set up the bottom frame of the page
+        self.frame_middle = ctk.CTkFrame(self, fg_color="transparent")
+        self.frame_middle.grid(row=2, column=0, padx=5, pady=5, sticky="w")
+
+        #Set up the bottom frame of the page
+        self.frame_bottom = ctk.CTkFrame(self, fg_color="transparent")
+        self.frame_bottom.grid(row=3, column=0, padx=5, pady=5, sticky="w")
+
+        #Logo creation and placement
+        self.label_logo = ctk.CTkLabel(self.frame_top, text="", image=secondary_logo)
+        self.label_logo.grid(row=0, column=0, padx=10, pady=10)
+
+        #Title for the top of the ProjectCreationWindow
+        self.title_label = ctk.CTkLabel(self.frame_top, text="Result Review", font=("", 20))
+        self.title_label.grid(row=0, column=1, padx=10, pady=5)
+
+#ProjectDetailsWindow configuration
+class ProjectReportWindow(ctk.CTkToplevel):
+    def __init__(self, parent, project_id):
+        super().__init__(parent)
+
+        self.project_id = project_id
+
+        #Page title creation and window size
+        self.title("Project Report")
+        self.geometry("1000x750")
+
+        #Set up the top frame of the page
+        self.frame_top = ctk.CTkFrame(self, fg_color="transparent")
+        self.frame_top.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
+
+        # Set up the bottom frame of the page
+        self.frame_middle = ctk.CTkFrame(self, fg_color="transparent")
+        self.frame_middle.grid(row=2, column=0, padx=5, pady=5, sticky="w")
+
+        #Set up the bottom frame of the page
+        self.frame_bottom = ctk.CTkFrame(self, fg_color="transparent")
+        self.frame_bottom.grid(row=3, column=0, padx=5, pady=5, sticky="w")
+
+        #Logo creation and placement
+        self.label_logo = ctk.CTkLabel(self.frame_top, text="", image=secondary_logo)
+        self.label_logo.grid(row=0, column=0, padx=10, pady=10)
+
+        #Title for the top of the ProjectCreationWindow
+        self.title_label = ctk.CTkLabel(self.frame_top, text="Project Report", font=("", 20))
+        self.title_label.grid(row=0, column=1, padx=10, pady=5)
 
 #ProjectCreationWindow configuration
 class ProjectCreationWindow(ctk.CTkToplevel):

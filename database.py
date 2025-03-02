@@ -135,8 +135,8 @@ def get_filtered_projects_list(status_list):
         print(filtered_projects_list)
         return filtered_projects_list
 
-#Gets project details from database
-def get_project_details(project_id):
+#Gets project status from database
+def get_project_status(project_id):
     with get_database_connection() as conn:
         cursor = conn.cursor()
         query_status = """SELECT project.Project_ID, status.Status 
@@ -145,6 +145,13 @@ def get_project_details(project_id):
                         WHERE project.Project_ID=?"""
         cursor.execute(query_status, project_id)
         project_status = cursor.fetchone()[1]
+        return project_status
+
+#Gets project details from database
+def get_project_details(project_id):
+    with get_database_connection() as conn:
+        cursor = conn.cursor()
+        project_status = get_project_status(project_id)
         query_details = """SELECT project.Project_ID, project.Date_Created, count(DISTINCT sample.Sample_Number) as 'Sample Count'
                         FROM Project as project
                         JOIN  Sample as sample ON project.Project_ID=sample.Project_ID
@@ -152,6 +159,7 @@ def get_project_details(project_id):
                         GROUP BY project.Project_ID, project.Date_Created"""
         cursor.execute(query_details, project_id)
         details = cursor.fetchone()
+        print(details)
         project_creation_date = details[1].strftime("%Y-%m-%d")
         project_sample_count = details[2]
         project_details = [project_id, project_status, project_creation_date, project_sample_count]
