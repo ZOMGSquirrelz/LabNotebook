@@ -116,6 +116,7 @@ def get_all_projects_list():
                     ORDER BY project.Project_ID"""
         cursor.execute(query)
         total_projects_list = cursor.fetchall()     #Puts data into a list
+        print(total_projects_list)
         for p in total_projects_list:
             print(f'Project: {p[0]} | Status: {p[1]}')          #Debugging
         return total_projects_list
@@ -165,3 +166,33 @@ def get_project_details(project_id):
         project_details = [project_id, project_status, project_creation_date, project_sample_count]
         print(f'Project: {project_id}, status: {project_status}, date: {project_creation_date}, samples: {project_sample_count}')       #Debugging
         return project_details
+
+#Gets all tests selected for all samples on a project
+def get_test_profile_tests_only(project_id):
+    with get_database_connection() as conn:
+        cursor = conn.cursor()
+        query = """SELECT Test_LU.Test FROM Sample
+                    Join Test_LU ON Sample.Test = Test_LU.Test_ID
+                    WHERE Sample.Project_ID = ?"""
+        cursor.execute(query, project_id)
+        results = cursor.fetchall()
+        tests = []
+        for test in results:
+            tests.append(test[0])
+        unique_tests = list(set(tests))
+        return unique_tests
+
+#Gets samples to enter based on project ID and selected test
+def get_samples_to_enter(project_id, test):
+    with get_database_connection() as conn:
+        cursor = conn.cursor()
+        query = """SELECT Sample.Sample_ID, Sample.Sample_Number FROM Sample
+                    WHERE Sample.Project_ID = ? AND Sample.Test = ?"""
+        cursor.execute(query, project_id, test)
+        results = cursor.fetchall()
+        sample_id_list = []
+        sample_number_list = []
+        for set in results:
+            sample_id_list.append(set[0])
+            sample_number_list.append(set[1])
+        return sample_id_list, sample_number_list

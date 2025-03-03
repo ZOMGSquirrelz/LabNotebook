@@ -29,6 +29,10 @@ class MainPage(ctk.CTkFrame):
         self.create_project_button = ctk.CTkButton(self, text="New Project", command=self.open_project_creation_window)
         self.create_project_button.pack(pady=5)
 
+        #TEST BUTTON
+        self.create_project_button = ctk.CTkButton(self, text="TEST", command=lambda: self.show_tests())
+        self.create_project_button.pack(pady=5)
+
         #Labal for the test button output
         self.label_test_list = ctk.CTkLabel(self, text="")
         self.label_test_list.pack(pady=5)
@@ -37,11 +41,10 @@ class MainPage(ctk.CTkFrame):
         self.project_creation_window = None
         self.project_search_window = None
 
-    #This is part of the test button
+    #TEST STUFF
     def show_tests(self):
-        #test_list = functions.set_test_list()
-        project_list = database.get_projects_list()
-        self.label_test_list.configure(text=project_list)
+        tests = database.get_samples_to_enter(10, 1)
+        self.label_test_list.configure(text=tests)
 
     #Open ProjectSearchWindow if it isn't already open
     def open_project_search_window(self):
@@ -97,7 +100,7 @@ class ProjectSearchWindow(ctk.CTkToplevel):
         self.title_label.grid(row=0, column=1, padx=10, pady=5)
 
         #Search button creation and placement
-        self.button_search_all = ctk.CTkButton(self.frame_top, text="Search All", command=lambda: self.search_projects())
+        self.button_search_all = ctk.CTkButton(self.frame_top, text="Search", command=lambda: self.search_projects())
         self.button_search_all.grid(row=1, column=1, padx=5, pady=5)
 
         #Set up status filter checkboxes
@@ -120,6 +123,10 @@ class ProjectSearchWindow(ctk.CTkToplevel):
         else:
             projects = database.get_filtered_projects_list(self.selected_search_status)
 
+        #Clears frame when new search is conducted
+        for widget in self.frame_middle.winfo_children():
+            widget.destroy()
+
         if projects:
             for index, project in enumerate(projects):
                 project_id, status = project
@@ -139,6 +146,7 @@ class ProjectSearchWindow(ctk.CTkToplevel):
                 button_report = ctk.CTkButton(self.frame_middle, text="View Report", command=lambda p_id=project_id: self.open_report_window(p_id))
                 button_report.grid(row=index, column=4, padx=5, pady=5)
 
+                #Button state changes based on project status
                 if status == "Closed":
                     button_enter.configure(state="disabled")
                     button_review.configure(state="disabled")
@@ -239,6 +247,7 @@ class ResultEntryWindow(ctk.CTkToplevel):
         super().__init__(parent)
 
         self.project_id = project_id
+        self.selected_option = ctk.StringVar(value=database.get_test_profile_tests_only(self.project_id)[0])
 
         #Page title creation and window size
         self.title("Result Entry")
@@ -263,6 +272,59 @@ class ResultEntryWindow(ctk.CTkToplevel):
         #Title for the top of the ProjectCreationWindow
         self.title_label = ctk.CTkLabel(self.frame_top, text="Result Entry", font=("", 20))
         self.title_label.grid(row=0, column=1, padx=10, pady=5)
+
+        #Label for test entry selection
+        self.label_test_selection = ctk.CTkLabel(self.frame_middle, text="Select a test type for entry")
+        self.label_test_selection.grid(row=0, column=0, padx=5, pady=5)
+
+        #Dropdown for tests selection
+        self.menu_tests = ctk.CTkOptionMenu(self.frame_middle, values=database.get_test_profile_tests_only(self.project_id), variable=self.selected_option)
+        self.menu_tests.grid(row=0, column=1, padx=5, pady=5)
+
+        #Button to submit selected test
+        self.button_test_selection = ctk.CTkButton(self.frame_middle, text="Submit", command=lambda: entry_grid_setup(get_selected_option()))
+        self.button_test_selection.grid(row=0, column=2, padx=5, pady=5)
+
+
+
+        #Gets selected option from dropdown for test selection
+        def get_selected_option():
+            selected_option = self.selected_option.get()
+            sql_test_value = functions.convert_to_sql_single_test(selected_option)
+            return sql_test_value
+
+        def entry_grid_setup(sql_test_value):
+            #Clears frame when new test is selected for entry
+            for widget in self.frame_bottom.winfo_children():
+                widget.destroy()
+
+            #Gets samples id and sample numbers from database and puts them into lists
+            sample_id_list, sample_number_list = database.get_samples_to_enter(self.project_id, sql_test_value)
+            current_row = 2
+
+            #Label for the test type to be entered
+            label_test_title = ctk.CTkLabel(self.frame_bottom, text=f"Test Entry For {self.selected_option.get()}")
+            label_test_title.grid(row=0, column=0, padx=5, pady=5)
+
+            #Label for the sample number header
+            label_sample_number_header = ctk.CTkLabel(self.frame_bottom, text="Sample Number")
+            label_sample_number_header.grid(row=1, column=0, padx=5, pady=5)
+
+            #Label for the Test Result header
+            label_test_header = ctk.CTkLabel(self.frame_bottom, text="Test Result")
+            label_test_header.grid(row=1, column=1, padx=5, pady=5)
+
+            #Creates a row with label and entry box for each sample
+            for sample in sample_number_list:
+                #Label for sample number
+                label_sample_number = ctk.CTkLabel(self.frame_bottom, text=sample)
+                label_sample_number.grid(row=current_row, column=0, padx=5, pady=5)
+
+                #Entry box for test result
+                entry_result = ctk.CTkEntry(self.frame_bottom)
+                entry_result.grid(row=current_row, column=1, padx=5, pady=5)
+
+                current_row += 1
 
 #ProjectDetailsWindow configuration
 class ResultReviewWindow(ctk.CTkToplevel):
