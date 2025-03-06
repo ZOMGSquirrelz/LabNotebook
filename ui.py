@@ -2,6 +2,7 @@ import customtkinter as ctk
 from PIL import Image
 import database
 import functions
+import config
 
 # Logo images
 main_logo = ctk.CTkImage(light_image=Image.open('images/NotebookLogo.JPG'),
@@ -43,8 +44,7 @@ class MainPage(ctk.CTkFrame):
 
     #TEST STUFF
     def show_tests(self):
-        tests = database.get_samples_to_enter(10, 1)
-        self.label_test_list.configure(text=tests)
+        tests = database.get_test_list()
 
     #Open ProjectSearchWindow if it isn't already open
     def open_project_search_window(self):
@@ -61,6 +61,7 @@ class MainPage(ctk.CTkFrame):
             self.project_creation_window.grab_set()  #Make other pages unclickable
         else:
             self.project_creation_window.focus()  #If already open, bring it to front
+
 
 #ProjectSearchWindow configuration
 class ProjectSearchWindow(ctk.CTkToplevel):
@@ -84,7 +85,7 @@ class ProjectSearchWindow(ctk.CTkToplevel):
         self.frame_top.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
 
         # Set up the bottom frame of the page
-        self.frame_middle = ctk.CTkFrame(self, fg_color="transparent")
+        self.frame_middle = ctk.CTkScrollableFrame(self, fg_color="transparent", width=950, height=500)
         self.frame_middle.grid(row=2, column=0, padx=5, pady=5, sticky="w")
 
         #Set up the bottom frame of the page
@@ -241,13 +242,17 @@ class ProjectDetailsWindow(ctk.CTkToplevel):
         print(type(details[3]))
         return details_report
 
-#ProjectDetailsWindow configuration
+#ResultEntryWindow configuration
 class ResultEntryWindow(ctk.CTkToplevel):
     def __init__(self, parent, project_id):
         super().__init__(parent)
 
         self.project_id = project_id
-        self.selected_option = ctk.StringVar(value=database.get_test_profile_tests_only(self.project_id)[0])
+        self.selected_option = ctk.StringVar(value=database.get_test_profile_tests_only(self.project_id)[0])        #Variable for selected options menu
+        self.result_counts = []     #List to store overall project results for the test type
+        self.sample_index = 0
+        self.sample_id_list = []        #List for sample_id
+        self.sample_number_list = []        #List for sample_numbers
 
         #Page title creation and window size
         self.title("Result Entry")
@@ -257,76 +262,172 @@ class ResultEntryWindow(ctk.CTkToplevel):
         self.frame_top = ctk.CTkFrame(self, fg_color="transparent")
         self.frame_top.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
 
-        # Set up the bottom frame of the page
+        # Set up the middle frame of the page
         self.frame_middle = ctk.CTkFrame(self, fg_color="transparent")
-        self.frame_middle.grid(row=2, column=0, padx=5, pady=5, sticky="w")
+        self.frame_middle.grid(row=1, column=0, padx=5, pady=5, sticky="w")
 
-        #Set up the bottom frame of the page
+        # Set up the bottom frame of the page
         self.frame_bottom = ctk.CTkFrame(self, fg_color="transparent")
-        self.frame_bottom.grid(row=3, column=0, padx=5, pady=5, sticky="w")
+        self.frame_bottom.grid(row=2, column=0, padx=5, pady=5, sticky="w")
 
         #Logo creation and placement
         self.label_logo = ctk.CTkLabel(self.frame_top, text="", image=secondary_logo)
         self.label_logo.grid(row=0, column=0, padx=10, pady=10)
 
-        #Title for the top of the ProjectCreationWindow
-        self.title_label = ctk.CTkLabel(self.frame_top, text="Result Entry", font=("", 20))
+        #Title for the top of the ResultsEntryWindow
+        self.title_label = ctk.CTkLabel(self.frame_top, text="Result Entry", font=("TkDefaultFont", 20))
         self.title_label.grid(row=0, column=1, padx=10, pady=5)
 
-        #Label for test entry selection
+        #Label for tests selection
         self.label_test_selection = ctk.CTkLabel(self.frame_middle, text="Select a test type for entry")
         self.label_test_selection.grid(row=0, column=0, padx=5, pady=5)
 
-        #Dropdown for tests selection
+        #Option menu of tests to be entered
         self.menu_tests = ctk.CTkOptionMenu(self.frame_middle, values=database.get_test_profile_tests_only(self.project_id), variable=self.selected_option)
         self.menu_tests.grid(row=0, column=1, padx=5, pady=5)
 
-        #Button to submit selected test
-        self.button_test_selection = ctk.CTkButton(self.frame_middle, text="Submit", command=lambda: entry_grid_setup(get_selected_option()))
+        #Submit button for selected test
+        self.button_test_selection = ctk.CTkButton(self.frame_middle, text="Submit", command=self.entry_grid_setup)
         self.button_test_selection.grid(row=0, column=2, padx=5, pady=5)
 
+    #Gets the selected option from the dropdown menu
+    def get_selected_option(self):
+        selected_option = self.selected_option.get()        #Gets the selection from option menu
+        sql_test_value = functions.convert_to_sql_single_test(selected_option)      #Converts the selection to sql code
+        return sql_test_value
+
+    #Sets up the entry grid prompts
+    def entry_grid_setup(self):
+        sql_test_id = self.get_selected_option()
+
+        for widget in self.frame_bottom.winfo_children():       #Clears frame of previous entries
+            widget.destroy()
+
+        #Gets the samples to enter for the given project and test type selected
+        self.sample_id_list, self.sample_number_list = database.get_samples_to_enter(self.project_id, sql_test_id)
+
+        #If no samples to enter, return
+        if not self.sample_number_list:
+            label_error = ctk.CTkLabel(self.frame_bottom, text="No samples found.")
+            label_error.grid(row=0, column=0, padx=5, pady=5)
+            return
+        if sql_test_id == 2:
+            self.prompt_dilutions()
+        else:
+            label_output = ctk.CTkLabel(self.frame_bottom, text="These are not APCs")
+            label_output.grid(row=0, column=0, padx=5, pady=5)
+
+    #Prompts user for number of dilutions for a sample
+    def prompt_dilutions(self):
+        #Displays if all samples have been entered
+        if self.sample_index >= len(self.sample_number_list):
+
+            label_completed = ctk.CTkLabel(self.frame_bottom, text=f'All samples completed for {self.selected_option.get()}')
+            label_completed.grid(row=0, column=0, padx=5, pady=5)
+            print("All samples completed!", self.result_counts)
+            #ADD DISPLAY RESULTS AT END
+            return
+
+        sample_number = self.sample_number_list[self.sample_index]
+
+        #Label for dilutions prompt
+        label_dilutions = ctk.CTkLabel(self.frame_bottom, text=f"Sample {sample_number} - Enter number of dilutions:")
+        label_dilutions.grid(row=0, column=0, padx=5, pady=5)
+
+        #Entry box for dilutions prompt
+        self.entry_dilutions = ctk.CTkEntry(self.frame_bottom)
+        self.entry_dilutions.grid(row=0, column=1, padx=5, pady=5)
+        self.entry_dilutions.focus()
+        self.entry_dilutions.bind("<Return>", self.prompt_lowest_dilution)      #On 'Enter' press, prompts lowest dilution
+
+    #Prompts user for lowest dilution for the sample
+    def prompt_lowest_dilution(self, event):
+        #Error handling for dilution count entry
+        try:
+            self.num_dilutions = int(self.entry_dilutions.get().strip())
+        except ValueError:
+            return  #Ignore invalid input
+
+        for widget in self.frame_bottom.winfo_children():       #Clears frame of previous entries
+            widget.destroy()
+
+        #Label for lowest dilution
+        label_low_dilution = ctk.CTkLabel(self.frame_bottom, text="Enter lowest dilution:")
+        label_low_dilution.grid(row=0, column=0, padx=5, pady=5)
+
+        #Entry box for lowest dilution
+        self.entry_lowest_dilution = ctk.CTkEntry(self.frame_bottom)
+        self.entry_lowest_dilution.grid(row=0, column=1, padx=5, pady=5)
+        self.entry_lowest_dilution.focus()
+        self.entry_lowest_dilution.bind("<Return>", self.create_dilution_rows)
+
+    #Creates the entry boxes for the number of dilutions
+    def create_dilution_rows(self, event):
+        #Error handling for lowest dilution entry
+        try:
+            self.lowest_dilution = int(self.entry_lowest_dilution.get().strip())
+        except ValueError:
+            return
+
+        for widget in self.frame_bottom.winfo_children():       #Clears frame of previous entries
+            widget.destroy()
+
+        #Label for dilution header
+        label_dilution_header = ctk.CTkLabel(self.frame_bottom, text="Dilution")
+        label_dilution_header.grid(row=0, column=0, padx=5, pady=5)
+
+        #Label for count header
+        label_count_header = ctk.CTkLabel(self.frame_bottom, text="Count")
+        label_count_header.grid(row=0, column=1, padx=5, pady=5)
 
 
-        #Gets selected option from dropdown for test selection
-        def get_selected_option():
-            selected_option = self.selected_option.get()
-            sql_test_value = functions.convert_to_sql_single_test(selected_option)
-            return sql_test_value
+        self.dilution_entries = []
+        dilution_factor = self.lowest_dilution      #Sets dilution_factor to current lowest dilution
 
-        def entry_grid_setup(sql_test_value):
-            #Clears frame when new test is selected for entry
-            for widget in self.frame_bottom.winfo_children():
-                widget.destroy()
+        #Loops through for total number of dilutions entered
+        for i in range(self.num_dilutions):
+            #Label for dilution
+            label_dilution = ctk.CTkLabel(self.frame_bottom, text=str(dilution_factor))
+            label_dilution.grid(row=i + 1, column=0, padx=5, pady=5)
 
-            #Gets samples id and sample numbers from database and puts them into lists
-            sample_id_list, sample_number_list = database.get_samples_to_enter(self.project_id, sql_test_value)
-            current_row = 2
+            #Entry box for count
+            entry_count = ctk.CTkEntry(self.frame_bottom)
+            entry_count.grid(row=i + 1, column=1, padx=5, pady=5)
 
-            #Label for the test type to be entered
-            label_test_title = ctk.CTkLabel(self.frame_bottom, text=f"Test Entry For {self.selected_option.get()}")
-            label_test_title.grid(row=0, column=0, padx=5, pady=5)
+            #Adds the dilution and it's count to dilution_entries list
+            self.dilution_entries.append([dilution_factor, entry_count])
 
-            #Label for the sample number header
-            label_sample_number_header = ctk.CTkLabel(self.frame_bottom, text="Sample Number")
-            label_sample_number_header.grid(row=1, column=0, padx=5, pady=5)
+            #Increase diltuion factor by 1
+            dilution_factor += 1
 
-            #Label for the Test Result header
-            label_test_header = ctk.CTkLabel(self.frame_bottom, text="Test Result")
-            label_test_header.grid(row=1, column=1, padx=5, pady=5)
+        #Button to submit entries
+        button_submit = ctk.CTkButton(self.frame_bottom, text="Submit", command=self.store_results)
+        button_submit.grid(row=self.num_dilutions + 1, column=1, padx=5, pady=5)
 
-            #Creates a row with label and entry box for each sample
-            for sample in sample_number_list:
-                #Label for sample number
-                label_sample_number = ctk.CTkLabel(self.frame_bottom, text=sample)
-                label_sample_number.grid(row=current_row, column=0, padx=5, pady=5)
+    #Stores the submitted results in results_counts
+    def store_results(self):
+        sample_number = self.sample_number_list[self.sample_index]
+        sample_results = []
 
-                #Entry box for test result
-                entry_result = ctk.CTkEntry(self.frame_bottom)
-                entry_result.grid(row=current_row, column=1, padx=5, pady=5)
+        #Loops through all entries in dilution_entries to append into sample_results list
+        for dilution_factor, entry in self.dilution_entries:
+            try:
+                count = int(entry.get().strip())
+                sample_results.append([dilution_factor, count])
+            except ValueError:
+                print(f"Invalid count for dilution {dilution_factor}, skipping...")
 
-                current_row += 1
+        sql_test = functions.convert_to_test_name_from_sql_code(self.get_selected_option())
+        print(f'sql_test_id: {sql_test}')
+        final_result = functions.compare_to_countable_range(sql_test, sample_results)
+        self.result_counts.append([sample_number, final_result])
 
-#ProjectDetailsWindow configuration
+        self.sample_index += 1      #Move to next sample
+        for widget in self.frame_bottom.winfo_children():       #Clears frame of previous entries
+            widget.destroy()
+        self.prompt_dilutions()     #Restart for next sample
+
+#ResultReviewWindow configuration
 class ResultReviewWindow(ctk.CTkToplevel):
     def __init__(self, parent, project_id):
         super().__init__(parent)
@@ -357,7 +458,7 @@ class ResultReviewWindow(ctk.CTkToplevel):
         self.title_label = ctk.CTkLabel(self.frame_top, text="Result Review", font=("", 20))
         self.title_label.grid(row=0, column=1, padx=10, pady=5)
 
-#ProjectDetailsWindow configuration
+#ProjectReportWindow configuration
 class ProjectReportWindow(ctk.CTkToplevel):
     def __init__(self, parent, project_id):
         super().__init__(parent)

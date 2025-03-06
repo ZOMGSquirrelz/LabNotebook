@@ -43,12 +43,23 @@ def get_test_list():
 def get_status_list():
     with get_database_connection() as conn:
         cursor = conn.cursor()
-        query = """SELECT Status FROM Status_LU"""
+        query = """SELECT Status 
+                    FROM Status_LU"""
         cursor.execute(query)
         status_list = []
         for status in cursor.fetchall():
             status_list.append(status[0])
         return status_list
+
+def get_test_id_by_test_name(test_name):
+    with get_database_connection() as conn:
+        cursor = conn.cursor()
+        query = """SELECT Test_LU.Test_ID 
+                    FROM Test_LU
+                    WHERE Test = ?"""
+        cursor.execute(query, test_name)
+        test_id = cursor.fetchone()[0]
+        return test_id
 
 #Returns current project number from the SQL table
 def get_current_project_number():
@@ -116,9 +127,6 @@ def get_all_projects_list():
                     ORDER BY project.Project_ID"""
         cursor.execute(query)
         total_projects_list = cursor.fetchall()     #Puts data into a list
-        print(total_projects_list)
-        for p in total_projects_list:
-            print(f'Project: {p[0]} | Status: {p[1]}')          #Debugging
         return total_projects_list
 
 #Pull project information based on filters
@@ -160,11 +168,9 @@ def get_project_details(project_id):
                         GROUP BY project.Project_ID, project.Date_Created"""
         cursor.execute(query_details, project_id)
         details = cursor.fetchone()
-        print(details)
         project_creation_date = details[1].strftime("%Y-%m-%d")
         project_sample_count = details[2]
         project_details = [project_id, project_status, project_creation_date, project_sample_count]
-        print(f'Project: {project_id}, status: {project_status}, date: {project_creation_date}, samples: {project_sample_count}')       #Debugging
         return project_details
 
 #Gets all tests selected for all samples on a project
@@ -190,6 +196,7 @@ def get_samples_to_enter(project_id, test):
                     WHERE Sample.Project_ID = ? AND Sample.Test = ?"""
         cursor.execute(query, project_id, test)
         results = cursor.fetchall()
+        results.sort()
         sample_id_list = []
         sample_number_list = []
         for set in results:
