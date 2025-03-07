@@ -122,6 +122,25 @@ def compare_to_countable_range(test_name, values_list):
     final_result = result_rounding(str(int(result)))        #Conduct rounding rules on the result from calculations
     return final_result
 
+#Perfomr rounding rules to chemistry result entries
+def chemistry_rounding(value):
+    value = round(float(value), 2)      #Round to 2 decimal places
+
+    #Extract the decimal values
+    first_decimal = int(value * 10) % 10
+    second_decimal = int(value * 100) % 10
+
+    #Rounding rules
+    if second_decimal < 5 or (second_decimal == 5 and first_decimal % 2 == 0):
+        result = round(value, 1)
+    else:
+        result = round(value + 0.01, 1)
+
+    #Convert to float with 1 decimal place
+    result = float(f"{result:.1f}")
+    return result
+
+
 #Stores the selected test for each sample
 def store_selected_tests(test_results, sample_id, selected_tests):
     test_results[sample_id] = selected_tests

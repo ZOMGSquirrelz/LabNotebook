@@ -62,11 +62,39 @@ class MainPage(ctk.CTkFrame):
         else:
             self.project_creation_window.focus()  #If already open, bring it to front
 
+class BasePage(ctk.CTkToplevel):
+    def __init__(self, parent, title_text):
+        super().__init__(parent)
+
+        # Page title creation and window size
+        self.title(f"{title_text}")
+        self.geometry("1000x750")
+
+        # Set up the top frame of the page
+        self.frame_top = ctk.CTkFrame(self, fg_color="transparent")
+        self.frame_top.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
+
+        # Set up the bottom frame of the page
+        self.frame_middle = ctk.CTkScrollableFrame(self, fg_color="transparent", width=950, height=500)
+        self.frame_middle.grid(row=2, column=0, padx=5, pady=5, sticky="w")
+
+        # Set up the bottom frame of the page
+        self.frame_bottom = ctk.CTkFrame(self, fg_color="transparent")
+        self.frame_bottom.grid(row=3, column=0, padx=5, pady=5, sticky="w")
+
+        # Logo creation and placement
+        self.label_logo = ctk.CTkLabel(self.frame_top, text="", image=secondary_logo)
+        self.label_logo.grid(row=0, column=0, padx=10, pady=10)
+
+        # Title for the top of the ProjectCreationWindow
+        self.title_label = ctk.CTkLabel(self.frame_top, text=f"{title_text}", font=("", 20))
+        self.title_label.grid(row=0, column=1, padx=10, pady=5)
+
 
 #ProjectSearchWindow configuration
-class ProjectSearchWindow(ctk.CTkToplevel):
+class ProjectSearchWindow(BasePage):
     def __init__(self, parent):
-        super().__init__(parent)
+        super().__init__(parent, "Project Search")
 
         self.project_window = None
         self.results_window = None
@@ -75,30 +103,6 @@ class ProjectSearchWindow(ctk.CTkToplevel):
         self.selected_search_status = []
         self.list_of_status = database.get_status_list()
         self.status_vars = {}
-
-        #Page title creation and window size
-        self.title("Project Search")
-        self.geometry("1000x750")
-
-        #Set up the top frame of the page
-        self.frame_top = ctk.CTkFrame(self, fg_color="transparent")
-        self.frame_top.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
-
-        # Set up the bottom frame of the page
-        self.frame_middle = ctk.CTkScrollableFrame(self, fg_color="transparent", width=950, height=500)
-        self.frame_middle.grid(row=2, column=0, padx=5, pady=5, sticky="w")
-
-        #Set up the bottom frame of the page
-        self.frame_bottom = ctk.CTkFrame(self, fg_color="transparent")
-        self.frame_bottom.grid(row=3, column=0, padx=5, pady=5, sticky="w")
-
-        #Logo creation and placement
-        self.label_logo = ctk.CTkLabel(self.frame_top, text="", image=secondary_logo)
-        self.label_logo.grid(row=0, column=0, padx=10, pady=10)
-
-        #Title for the top of the ProjectCreationWindow
-        self.title_label = ctk.CTkLabel(self.frame_top, text="Project Search", font=("", 20))
-        self.title_label.grid(row=0, column=1, padx=10, pady=5)
 
         #Search button creation and placement
         self.button_search_all = ctk.CTkButton(self.frame_top, text="Search", command=lambda: self.search_projects())
@@ -198,35 +202,11 @@ class ProjectSearchWindow(ctk.CTkToplevel):
             self.report_window.focus()  #If already open, bring it to front
 
 #ProjectDetailsWindow configuration
-class ProjectDetailsWindow(ctk.CTkToplevel):
+class ProjectDetailsWindow(BasePage):
     def __init__(self, parent, project_id):
-        super().__init__(parent)
+        super().__init__(parent, "Project Details")
 
         self.project_id = project_id
-
-        #Page title creation and window size
-        self.title("Project Details")
-        self.geometry("1000x750")
-
-        #Set up the top frame of the page
-        self.frame_top = ctk.CTkFrame(self, fg_color="transparent")
-        self.frame_top.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
-
-        # Set up the bottom frame of the page
-        self.frame_middle = ctk.CTkFrame(self, fg_color="transparent")
-        self.frame_middle.grid(row=2, column=0, padx=5, pady=5, sticky="w")
-
-        #Set up the bottom frame of the page
-        self.frame_bottom = ctk.CTkFrame(self, fg_color="transparent")
-        self.frame_bottom.grid(row=3, column=0, padx=5, pady=5, sticky="w")
-
-        #Logo creation and placement
-        self.label_logo = ctk.CTkLabel(self.frame_top, text="", image=secondary_logo)
-        self.label_logo.grid(row=0, column=0, padx=10, pady=10)
-
-        #Title for the top of the ProjectCreationWindow
-        self.title_label = ctk.CTkLabel(self.frame_top, text="Project Details", font=("", 20))
-        self.title_label.grid(row=0, column=1, padx=10, pady=5)
 
         #Label to show project details
         self.label_project_details = ctk.CTkLabel(self.frame_top, text=self.get_project_details())
@@ -243,40 +223,17 @@ class ProjectDetailsWindow(ctk.CTkToplevel):
         return details_report
 
 #ResultEntryWindow configuration
-class ResultEntryWindow(ctk.CTkToplevel):
+class ResultEntryWindow(BasePage):
     def __init__(self, parent, project_id):
-        super().__init__(parent)
+        super().__init__(parent, "Result Entry")
 
         self.project_id = project_id
         self.selected_option = ctk.StringVar(value=database.get_test_profile_tests_only(self.project_id)[0])        #Variable for selected options menu
+        self.pathogen_selected_value = ctk.StringVar(value=config.pathogen_results[0])
         self.result_counts = []     #List to store overall project results for the test type
         self.sample_index = 0
         self.sample_id_list = []        #List for sample_id
         self.sample_number_list = []        #List for sample_numbers
-
-        #Page title creation and window size
-        self.title("Result Entry")
-        self.geometry("1000x750")
-
-        #Set up the top frame of the page
-        self.frame_top = ctk.CTkFrame(self, fg_color="transparent")
-        self.frame_top.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
-
-        # Set up the middle frame of the page
-        self.frame_middle = ctk.CTkFrame(self, fg_color="transparent")
-        self.frame_middle.grid(row=1, column=0, padx=5, pady=5, sticky="w")
-
-        # Set up the bottom frame of the page
-        self.frame_bottom = ctk.CTkFrame(self, fg_color="transparent")
-        self.frame_bottom.grid(row=2, column=0, padx=5, pady=5, sticky="w")
-
-        #Logo creation and placement
-        self.label_logo = ctk.CTkLabel(self.frame_top, text="", image=secondary_logo)
-        self.label_logo.grid(row=0, column=0, padx=10, pady=10)
-
-        #Title for the top of the ResultsEntryWindow
-        self.title_label = ctk.CTkLabel(self.frame_top, text="Result Entry", font=("TkDefaultFont", 20))
-        self.title_label.grid(row=0, column=1, padx=10, pady=5)
 
         #Label for tests selection
         self.label_test_selection = ctk.CTkLabel(self.frame_middle, text="Select a test type for entry")
@@ -311,26 +268,129 @@ class ResultEntryWindow(ctk.CTkToplevel):
             label_error = ctk.CTkLabel(self.frame_bottom, text="No samples found.")
             label_error.grid(row=0, column=0, padx=5, pady=5)
             return
-        if sql_test_id == 2:
+        if sql_test_id in config.petrifilm_tests:
             self.prompt_dilutions()
+        elif sql_test_id in config.pathogen_tests:
+            self.prompt_pathogen_entry()
+        elif sql_test_id in config.chemistry_tests:
+            self.prompt_chemistry_entry()
+
+    #Displays the results of the entered tests
+    def display_final_results(self, results_list):
+        results_list = self.result_counts
+        test_name = self.selected_option.get()
+        row = 1
+        if test_name in config.result_units:
+            unit = config.result_units[test_name]
         else:
-            label_output = ctk.CTkLabel(self.frame_bottom, text="These are not APCs")
-            label_output.grid(row=0, column=0, padx=5, pady=5)
+            unit = ""
+        for sample in results_list:
+            sample_number = sample[0]
+            result = sample[1]
+
+            label_results = ctk.CTkLabel(self.frame_bottom, text=f"Sample {sample_number} result: {result} {unit}", font=("TkDefaultFont", 16))
+            label_results.grid(row= row, column=0, padx=5, pady=5)
+            row += 1
+
+    #Gets the chemistry result entry
+    def get_pathogen_result_entry(self):
+        path_result = self.pathogen_selected_value.get()
+
+        #Store sample number and final result into result_counts list
+        sample_number = self.sample_number_list[self.sample_index]
+        self.result_counts.append([sample_number, path_result])
+
+        self.sample_index += 1
+
+        for widget in self.frame_bottom.winfo_children():
+            widget.destroy()
+
+        label_previous_sample = ctk.CTkLabel(self.frame_bottom, text=f"Result for sample {sample_number} stored")
+        label_previous_sample.grid(row=0, column=0, padx=5, pady=5)
+
+        self.prompt_pathogen_entry()
+
+    #Prompts user for chemistry result entry
+    def prompt_pathogen_entry(self):
+        #If all samples have been entered, displays results
+        if self.sample_index >= len(self.sample_number_list):
+            label_completed = ctk.CTkLabel(self.frame_bottom, text=f'All samples completed for {self.selected_option.get()}')
+            label_completed.grid(row=0, column=0, padx=5, pady=5)
+            print("All samples completed!", self.result_counts)
+            self.display_final_results(self.result_counts)
+            return
+
+        sample_number = self.sample_number_list[self.sample_index]
+
+        #Label for result prompt
+        label_dilutions = ctk.CTkLabel(self.frame_bottom, text=f"Sample {sample_number} - {self.selected_option.get()}:")
+        label_dilutions.grid(row=1, column=0, padx=5, pady=5)
+
+        #Menu of pathogen result options
+        menu_pathogen_options = ctk.CTkOptionMenu(self.frame_bottom, values= config.pathogen_results, variable=self.pathogen_selected_value)
+        menu_pathogen_options.grid(row=1, column=1, padx=5, pady=5)
+
+        #Button to submit entries
+        button_submit = ctk.CTkButton(self.frame_bottom, text="Submit", command=lambda: self.get_pathogen_result_entry())
+        button_submit.grid(row=1, column=2, padx=5, pady=5)
+
+
+    #Gets the chemistry result entry
+    def get_chemistry_result_entry(self, event):
+        # Error handling for result entry
+        try:
+            chem_result = float(self.entry_chem_result.get().strip())
+            final_result = functions.chemistry_rounding(chem_result)
+        except ValueError:
+            print("Invalid input: Please enter a number")
+            return  #Ignore invalid input
+
+        #Store sample number and final result into result_counts list
+        sample_number = self.sample_number_list[self.sample_index]
+        self.result_counts.append([sample_number, final_result])
+
+        self.sample_index += 1
+
+        for widget in self.frame_bottom.winfo_children():
+            widget.destroy()
+
+        self.prompt_chemistry_entry()
+
+    #Prompts user for chemistry result entry
+    def prompt_chemistry_entry(self):
+        #If all samples have been entered, displace results
+        if self.sample_index >= len(self.sample_number_list):
+            label_completed = ctk.CTkLabel(self.frame_bottom, text=f'All samples completed for {self.selected_option.get()}')
+            label_completed.grid(row=0, column=0, padx=5, pady=5)
+            print("All samples completed!", self.result_counts)
+            self.display_final_results(self.result_counts)
+            return
+
+        sample_number = self.sample_number_list[self.sample_index]
+
+        #Label for result prompt
+        label_dilutions = ctk.CTkLabel(self.frame_bottom, text=f"Sample {sample_number} - {self.selected_option.get()}:")
+        label_dilutions.grid(row=0, column=0, padx=5, pady=5)
+
+        #Entry box for result prompt
+        self.entry_chem_result = ctk.CTkEntry(self.frame_bottom)
+        self.entry_chem_result.grid(row=0, column=1, padx=5, pady=5)
+        self.entry_chem_result.focus()
+        self.entry_chem_result.bind("<Return>", self.get_chemistry_result_entry)  #On 'Enter' press, prompts lowest dilution
 
     #Prompts user for number of dilutions for a sample
     def prompt_dilutions(self):
         #Displays if all samples have been entered
         if self.sample_index >= len(self.sample_number_list):
-
             label_completed = ctk.CTkLabel(self.frame_bottom, text=f'All samples completed for {self.selected_option.get()}')
             label_completed.grid(row=0, column=0, padx=5, pady=5)
             print("All samples completed!", self.result_counts)
-            #ADD DISPLAY RESULTS AT END
+            self.display_final_results(self.result_counts)
             return
 
         sample_number = self.sample_number_list[self.sample_index]
 
-        #Label for dilutions prompt
+        #Label for dilutions promptsdlkj
         label_dilutions = ctk.CTkLabel(self.frame_bottom, text=f"Sample {sample_number} - Enter number of dilutions:")
         label_dilutions.grid(row=0, column=0, padx=5, pady=5)
 
@@ -401,11 +461,13 @@ class ResultEntryWindow(ctk.CTkToplevel):
             dilution_factor += 1
 
         #Button to submit entries
-        button_submit = ctk.CTkButton(self.frame_bottom, text="Submit", command=self.store_results)
+        button_submit = ctk.CTkButton(self.frame_bottom, text="Submit", command=self.store_petrifilm_results)
         button_submit.grid(row=self.num_dilutions + 1, column=1, padx=5, pady=5)
 
+        print(f'Dilution_entries: {self.dilution_entries}')
+
     #Stores the submitted results in results_counts
-    def store_results(self):
+    def store_petrifilm_results(self):
         sample_number = self.sample_number_list[self.sample_index]
         sample_results = []
 
@@ -416,11 +478,11 @@ class ResultEntryWindow(ctk.CTkToplevel):
                 sample_results.append([dilution_factor, count])
             except ValueError:
                 print(f"Invalid count for dilution {dilution_factor}, skipping...")
-
+        print(f'sample results: {sample_results}')
         sql_test = functions.convert_to_test_name_from_sql_code(self.get_selected_option())
-        print(f'sql_test_id: {sql_test}')
         final_result = functions.compare_to_countable_range(sql_test, sample_results)
         self.result_counts.append([sample_number, final_result])
+        print(f'Result counts: {self.result_counts}')
 
         self.sample_index += 1      #Move to next sample
         for widget in self.frame_bottom.winfo_children():       #Clears frame of previous entries
@@ -428,71 +490,25 @@ class ResultEntryWindow(ctk.CTkToplevel):
         self.prompt_dilutions()     #Restart for next sample
 
 #ResultReviewWindow configuration
-class ResultReviewWindow(ctk.CTkToplevel):
+class ResultReviewWindow(BasePage):
     def __init__(self, parent, project_id):
-        super().__init__(parent)
+        super().__init__(parent, "Result Review")
 
         self.project_id = project_id
 
-        #Page title creation and window size
-        self.title("Result Review")
-        self.geometry("1000x750")
-
-        #Set up the top frame of the page
-        self.frame_top = ctk.CTkFrame(self, fg_color="transparent")
-        self.frame_top.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
-
-        # Set up the bottom frame of the page
-        self.frame_middle = ctk.CTkFrame(self, fg_color="transparent")
-        self.frame_middle.grid(row=2, column=0, padx=5, pady=5, sticky="w")
-
-        #Set up the bottom frame of the page
-        self.frame_bottom = ctk.CTkFrame(self, fg_color="transparent")
-        self.frame_bottom.grid(row=3, column=0, padx=5, pady=5, sticky="w")
-
-        #Logo creation and placement
-        self.label_logo = ctk.CTkLabel(self.frame_top, text="", image=secondary_logo)
-        self.label_logo.grid(row=0, column=0, padx=10, pady=10)
-
-        #Title for the top of the ProjectCreationWindow
-        self.title_label = ctk.CTkLabel(self.frame_top, text="Result Review", font=("", 20))
-        self.title_label.grid(row=0, column=1, padx=10, pady=5)
 
 #ProjectReportWindow configuration
-class ProjectReportWindow(ctk.CTkToplevel):
+class ProjectReportWindow(BasePage):
     def __init__(self, parent, project_id):
-        super().__init__(parent)
+        super().__init__(parent, "Project Report")
 
         self.project_id = project_id
 
-        #Page title creation and window size
-        self.title("Project Report")
-        self.geometry("1000x750")
-
-        #Set up the top frame of the page
-        self.frame_top = ctk.CTkFrame(self, fg_color="transparent")
-        self.frame_top.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
-
-        # Set up the bottom frame of the page
-        self.frame_middle = ctk.CTkFrame(self, fg_color="transparent")
-        self.frame_middle.grid(row=2, column=0, padx=5, pady=5, sticky="w")
-
-        #Set up the bottom frame of the page
-        self.frame_bottom = ctk.CTkFrame(self, fg_color="transparent")
-        self.frame_bottom.grid(row=3, column=0, padx=5, pady=5, sticky="w")
-
-        #Logo creation and placement
-        self.label_logo = ctk.CTkLabel(self.frame_top, text="", image=secondary_logo)
-        self.label_logo.grid(row=0, column=0, padx=10, pady=10)
-
-        #Title for the top of the ProjectCreationWindow
-        self.title_label = ctk.CTkLabel(self.frame_top, text="Project Report", font=("", 20))
-        self.title_label.grid(row=0, column=1, padx=10, pady=5)
 
 #ProjectCreationWindow configuration
-class ProjectCreationWindow(ctk.CTkToplevel):
+class ProjectCreationWindow(BasePage):
     def __init__(self, parent):
-        super().__init__(parent)
+        super().__init__(parent, "Project Creation")
 
         self.test_window = None     #Set test_window to None
 
@@ -500,26 +516,6 @@ class ProjectCreationWindow(ctk.CTkToplevel):
         self.current_sample = 1
         self.test_results = {}
         self.project_number = database.get_current_project_number() + 1     #Set project_number to one more than most recently used number
-
-        #Page title creation and window size
-        self.title("Project Creation")
-        self.geometry("1000x750")
-
-        #Set up the top frame of the page
-        self.frame_top = ctk.CTkFrame(self, fg_color="transparent")
-        self.frame_top.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
-
-        #Set up the bottom frame of the page
-        self.frame_bottom = ctk.CTkFrame(self, fg_color="transparent")
-        self.frame_bottom.grid(row=1, column=0, padx=5, pady=5, sticky="w")
-
-        #Logo creation and placement
-        self.label_logo = ctk.CTkLabel(self.frame_top, text="", image=secondary_logo)
-        self.label_logo.grid(row=0, column=0, padx=10, pady=10)
-
-        #Title for the top of the ProjectCreationWindow
-        self.title_label = ctk.CTkLabel(self.frame_top, text="Project Creation", font=("", 20))
-        self.title_label.grid(row=0, column=1, padx=10, pady=5)
 
         #Label with the prompt to enter number of samples
         self.label_prompt = ctk.CTkLabel(self.frame_top, text="Enter number of samples:")
@@ -611,34 +607,14 @@ class ProjectCreationWindow(ctk.CTkToplevel):
         #self.destroy()
 
 #TestSelectionWindow configuration
-class TestSelectionWindow(ctk.CTkToplevel):
+class TestSelectionWindow(BasePage):
     def __init__(self, parent):
-        super().__init__(parent)
+        super().__init__(parent, "Test Selection")
 
         self.parent = parent
         self.selected_tests = []
         self.test_list = functions.set_test_list()
         self.checkbox_selection = {}
-
-        #Title creation and window size
-        self.title("Test Selection")
-        self.geometry("1000x750")
-
-        #Set up top frame of window
-        self.frame_top = ctk.CTkFrame(self, fg_color="transparent")
-        self.frame_top.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
-
-        #Set up bottom frame of window
-        self.frame_bottom = ctk.CTkFrame(self, fg_color="transparent")
-        self.frame_bottom.grid(row=1, column=0, padx=5, pady=5)
-
-        #Logo creation and placement
-        self.label_logo = ctk.CTkLabel(self.frame_top, text="", image=secondary_logo)
-        self.label_logo.grid(row=0, column=0, padx=10, pady=10)
-
-        #Title for top of TestSelectionWindow
-        self.title_label = ctk.CTkLabel(self.frame_top, text="Test Selection", font=("", 20))
-        self.title_label.grid(row=0, column=1, padx=10, pady=5)
 
         #Creates the grid of selectable tests
         self.generate_test_checkboxes(self.frame_bottom)
