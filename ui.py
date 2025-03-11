@@ -44,7 +44,7 @@ class MainPage(ctk.CTkFrame):
 
     #TEST STUFF
     def show_tests(self):
-        tests = database.get_test_list()
+        tests = database.get_test_profile_tests_only(11)
 
     #Open ProjectSearchWindow if it isn't already open
     def open_project_search_window(self):
@@ -75,7 +75,7 @@ class BasePage(ctk.CTkToplevel):
         self.frame_top.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
 
         # Set up the bottom frame of the page
-        self.frame_middle = ctk.CTkScrollableFrame(self, fg_color="transparent", width=950, height=500)
+        self.frame_middle = ctk.CTkFrame(self, fg_color="transparent")
         self.frame_middle.grid(row=2, column=0, padx=5, pady=5, sticky="w")
 
         # Set up the bottom frame of the page
@@ -103,6 +103,9 @@ class ProjectSearchWindow(BasePage):
         self.selected_search_status = []
         self.list_of_status = database.get_status_list()
         self.status_vars = {}
+
+        self.frame_middle = ctk.CTkScrollableFrame(self, fg_color="transparent", width=950, height=500)
+        self.frame_middle.grid(row=2, column=0, padx=5, pady=5, sticky="w")
 
         #Search button creation and placement
         self.button_search_all = ctk.CTkButton(self.frame_top, text="Search", command=lambda: self.search_projects())
@@ -228,7 +231,7 @@ class ResultEntryWindow(BasePage):
         super().__init__(parent, "Result Entry")
 
         self.project_id = project_id
-        self.selected_option = ctk.StringVar(value=database.get_test_profile_tests_only(self.project_id)[0])        #Variable for selected options menu
+        self.selected_option = ctk.StringVar(value=database.check_entry_complete_for_test(self.project_id)[0])        #Variable for selected options menu         values=database.get_test_profile_tests_only(self.project_id)
         self.pathogen_selected_value = ctk.StringVar(value=config.pathogen_results[0])
         self.result_counts = []     #List to store overall project results for the test type
         self.sample_index = 0
@@ -240,7 +243,7 @@ class ResultEntryWindow(BasePage):
         self.label_test_selection.grid(row=0, column=0, padx=5, pady=5)
 
         #Option menu of tests to be entered
-        self.menu_tests = ctk.CTkOptionMenu(self.frame_middle, values=database.get_test_profile_tests_only(self.project_id), variable=self.selected_option)
+        self.menu_tests = ctk.CTkOptionMenu(self.frame_middle, values=database.check_entry_complete_for_test(self.project_id), variable=self.selected_option)     #values=database.get_test_profile_tests_only(self.project_id)
         self.menu_tests.grid(row=0, column=1, padx=5, pady=5)
 
         #Submit button for selected test
@@ -291,6 +294,7 @@ class ResultEntryWindow(BasePage):
             label_results = ctk.CTkLabel(self.frame_bottom, text=f"Sample {sample_number} result: {result} {unit}", font=("TkDefaultFont", 16))
             label_results.grid(row= row, column=0, padx=5, pady=5)
             row += 1
+        database.submit_results_for_test(results_list, self.get_selected_option(), self.project_id)
 
     #Gets the chemistry result entry
     def get_pathogen_result_entry(self):
@@ -495,6 +499,39 @@ class ResultReviewWindow(BasePage):
         super().__init__(parent, "Result Review")
 
         self.project_id = project_id
+        self.final_results = functions.generate_report_results(project_id)
+        self.project_profile = None
+
+        # Search button creation and placement
+        self.button_view_report = ctk.CTkButton(self.frame_top, text="View Report", command=lambda: self.display_review_report())
+        self.button_view_report.grid(row=1, column=1, padx=5, pady=5)
+
+    def display_review_report(self):
+        sql_test_list = database.get_test_list()
+        row = 1
+        for sample_num, sample_value in self.final_results.items():
+            result_strings = []  #Store test results as formatted strings
+
+            for test_id, result in sample_value:  #Unpack test_id and result
+                #Get test name from test_id
+                test_name = next((key for key, value in sql_test_list.items() if value == test_id), "Unknown Test")
+
+                #Get the unit for the test (if available)
+                unit = config.result_units.get(test_name, "")
+
+                #Store formatted result for this test
+                result_strings.append(f"{test_name}: {result} {unit}".strip())
+
+            #Create a single string for this sample
+            result_text = f"Sample {sample_num}: " + " | ".join(result_strings)
+
+            #Debugging print
+            print(result_text)
+
+            #Create a single label per sample
+            label_results = ctk.CTkLabel(self.frame_middle, text=result_text, font=("TkDefaultFont", 16))
+            label_results.grid(row=row, column=0, padx=5, pady=5)
+            row += 1  #Move to the next row for the next sample
 
 
 #ProjectReportWindow configuration

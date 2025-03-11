@@ -1,5 +1,7 @@
 import pyodbc
 from datetime import date
+
+import config
 import functions
 from dotenv import load_dotenv
 import os
@@ -177,7 +179,7 @@ def get_project_details(project_id):
 def get_test_profile_tests_only(project_id):
     with get_database_connection() as conn:
         cursor = conn.cursor()
-        query = """SELECT Test_LU.Test FROM Sample
+        query = """SELECT DISTINCT Test_LU.Test FROM Sample
                     Join Test_LU ON Sample.Test = Test_LU.Test_ID
                     WHERE Sample.Project_ID = ?"""
         cursor.execute(query, project_id)
@@ -185,8 +187,21 @@ def get_test_profile_tests_only(project_id):
         tests = []
         for test in results:
             tests.append(test[0])
-        unique_tests = list(set(tests))
-        return unique_tests
+        print(tests)
+        return tests
+
+#Gets all sample numbers for a project
+def get_sample_nums_for_project(project_id):
+    with get_database_connection() as conn:
+        cursor = conn.cursor()
+        query = """SELECT DISTINCT Sample.Sample_Number FROM Sample 
+                    WHERE Sample.Project_ID = ?"""
+        cursor.execute(query, project_id)
+        results = cursor.fetchall()
+        samples = []
+        for sample in results:
+            samples.append(sample[0])
+        return samples
 
 #Gets samples to enter based on project ID and selected test
 def get_samples_to_enter(project_id, test):
@@ -203,3 +218,101 @@ def get_samples_to_enter(project_id, test):
             sample_id_list.append(set[0])
             sample_number_list.append(set[1])
         return sample_id_list, sample_number_list
+
+#Checks to see if all samples have a result entered
+def check_all_samples_entered(project_id):
+    with get_database_connection() as conn:
+        cursor = conn.cursor()
+        query = """SELECT Sample.Sample_Complete FROM Sample
+                WHERE Sample.Project_ID = ?"""
+        cursor.execute(query, project_id)
+        returned_list = cursor.fetchall()
+        completed_list = []
+        for check in returned_list:
+            completed_list.append(check[0])
+        if all(completed_list) == True:
+            change_project_status(project_id, "Review")
+        else:
+            change_project_status(project_id, "In Progress")
+
+#Changes project status
+def change_project_status(project_id, change_status_to):
+    with get_database_connection() as conn:
+        cursor = conn.cursor()
+        current_status = get_project_status(project_id)
+        if current_status == "Open" and change_status_to == "In Progress":
+            query = """UPDATE Project SET Status = 2
+                        WHERE Project_ID = ?"""
+            cursor.execute(query, project_id)
+        elif current_status == "In Progress" and change_status_to == "Review":
+            query = """UPDATE Project SET Status = 3
+                        WHERE Project_ID = ?"""
+            cursor.execute(query, project_id)
+        elif current_status == "Review" and change_status_to == "Closed":
+            query = """UPDATE Project SET Status = 4
+                        WHERE Project_ID = ?"""
+            cursor.execute(query, project_id)
+        else:
+            return
+
+#Submits sample results to database
+def submit_results_for_test(results_list, sql_test, project_id):
+    with get_database_connection() as conn:
+        cursor = conn.cursor()
+        if sql_test in config.petrifilm_tests or sql_test in config.chemistry_tests:
+            query = """UPDATE Sample SET Result_Num = ?, Sample_Complete = 1
+                        WHERE Sample_Number = ? AND Test = ?"""
+        elif sql_test in config.pathogen_tests:
+            query = """UPDATE Sample SET Result_Non_Num = ?, Sample_Complete = 1
+                        WHERE Sample_Number = ? AND Test = ?"""
+        else:
+            raise ValueError(f"Unknown test type: '{sql_test}'")
+        for sample in results_list:
+            cursor.execute(query, sample[1], sample[0], sql_test)
+    check_all_samples_entered(project_id)
+
+#Returns a list of tests still needed to be entered for a project
+def check_entry_complete_for_test(project_id):
+    with get_database_connection() as conn:
+        cursor = conn.cursor()
+        #Get SQL test codes for a project
+        test_query = """SELECT DISTINCT Sample.Test FROM Sample
+                        WHERE Sample.Project_ID = ?"""
+        cursor.execute(test_query, project_id)
+        results = cursor.fetchall()
+        #Put the codes into a list
+        sql_test_ids = []
+        for test in results:
+            sql_test_ids.append(test[0])
+        #For each test in sql_test_list, get sample_complete bool value for each sample with that test
+        for test in sql_test_ids:
+            check_query = """SELECT Sample.Sample_Complete FROM Sample
+                        WHERE Sample.Project_ID = ? and Sample.Test = ?"""
+            cursor.execute(check_query, project_id, test)
+            returned_list = cursor.fetchall()
+            completed_list = []
+            for check in returned_list:
+                completed_list.append(check[0])
+            #If all samples with that test have a result entered, remove test from list
+            if all(completed_list) == True:
+                sql_test_ids.remove(test)
+
+        #Convert remaining tests from sql_test_id's to string names
+        values = ", ".join(["?" for _ in sql_test_ids])
+        test_names_query = f"""SELECT Test_LU.Test FROM Test_LU
+                                WHERE Test_ID IN ({values})"""
+        cursor.execute(test_names_query, sql_test_ids)
+        results = cursor.fetchall()
+        tests_list = []
+        for test in results:
+            tests_list.append(test[0])
+        return tests_list
+
+def get_results_for_project(project_id):
+    with get_database_connection() as conn:
+        cursor = conn.cursor()
+        query = """SELECT Sample.Sample_Number, Sample.Test, Sample.Result_Num, Sample.Result_Non_Num FROM Sample
+                    WHERE Sample.Project_ID = ?"""
+        cursor.execute(query, project_id)
+        results = cursor.fetchall()
+        return results
