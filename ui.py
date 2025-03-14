@@ -44,7 +44,7 @@ class MainPage(ctk.CTkFrame):
 
     #TEST STUFF
     def show_tests(self):
-        tests = database.get_test_profile_tests_only(11)
+        tests = database.sample_profile_information(10, 4)
 
     #Open ProjectSearchWindow if it isn't already open
     def open_project_search_window(self):
@@ -215,15 +215,45 @@ class ProjectDetailsWindow(BasePage):
         self.label_project_details = ctk.CTkLabel(self.frame_top, text=self.get_project_details())
         self.label_project_details.grid(row=1, column=1, padx=5, pady=5)
 
+        self.create_project_profile_grid()
+
     #Puts project details into a printable statement
     def get_project_details(self):
         details = database.get_project_details((self.project_id))
-        details_report = "Project: {} | Status: {} | Creation Date: {} | Sample Count: {}".format(details[0], details[1], details[2], details[3])
-        print(type(details[0]))         #Debugging
-        print(type(details[1]))
-        print(type(details[2]))
-        print(type(details[3]))
+        details_report = f"Project: {details[0]} | Status: {details[1]} | Creation Date: {details[2]} | Sample Count: {details[3]}"
         return details_report
+
+    def create_project_profile_grid(self):
+        sample_numbers = database.get_sample_nums_for_project(self.project_id)
+        test_list = database.get_test_profile_tests_only(self.project_id)
+        indexed_test_list = list(enumerate(test_list))
+
+        header_span = len(sample_numbers)
+
+        label_sample_header = ctk.CTkLabel(self.frame_middle, text="Sample")
+        label_sample_header.grid(row=0, column=1, columnspan=header_span, padx=5, pady=5)
+
+        for index, test in indexed_test_list:
+            label_test = ctk.CTkLabel(self.frame_middle, text=test)
+            label_test.grid(row=index+2, column=0, padx=5, pady=5)
+
+        column = 1
+        for sample in sample_numbers:
+            profile = database.sample_profile_information(self.project_id, sample)
+
+            label_sample_number = ctk.CTkLabel(self.frame_middle, text=sample)
+            label_sample_number.grid(row=1, column=column, padx=5, pady=5)
+
+            for item in profile[1]:
+                if item in test_list:
+                    row = test_list.index(item) + 2
+                    label_X = ctk.CTkLabel(self.frame_middle, text='X')
+                    label_X.grid(row=row, column=column, padx=5, pady=5)
+                else:
+                    return
+            column += 1
+
+
 
 #ResultEntryWindow configuration
 class ResultEntryWindow(BasePage):
@@ -533,14 +563,12 @@ class ResultReviewWindow(BasePage):
             label_results.grid(row=row, column=0, padx=5, pady=5)
             row += 1  #Move to the next row for the next sample
 
-
 #ProjectReportWindow configuration
 class ProjectReportWindow(BasePage):
     def __init__(self, parent, project_id):
         super().__init__(parent, "Project Report")
 
         self.project_id = project_id
-
 
 #ProjectCreationWindow configuration
 class ProjectCreationWindow(BasePage):

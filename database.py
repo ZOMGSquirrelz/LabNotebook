@@ -96,7 +96,6 @@ def get_current_sample_id():
         current_sample_number = cursor.fetchone()[0]   #Set current_sample_number to the top most value from query results
         return current_sample_number                   #Return current_sample_number
 
-
 #Submits the project and samples into the database
 def submit_project_creation(project_number, ui_test_dict):
     sql_status = 1      #Set status to open for initial entry
@@ -187,7 +186,6 @@ def get_test_profile_tests_only(project_id):
         tests = []
         for test in results:
             tests.append(test[0])
-        print(tests)
         return tests
 
 #Gets all sample numbers for a project
@@ -316,3 +314,17 @@ def get_results_for_project(project_id):
         cursor.execute(query, project_id)
         results = cursor.fetchall()
         return results
+
+def sample_profile_information(project_id, sample_number):
+    with get_database_connection() as conn:
+        cursor = conn.cursor()
+        query = """SELECT Sample.Sample_Number, Test_LU.Test FROM Sample
+                    JOIN Test_LU ON Test_LU.Test_ID = Sample.Test
+                    WHERE Sample.Project_ID = ? AND Sample.Sample_Number = ?"""
+        cursor.execute(query, project_id, sample_number)
+        profile_all = cursor.fetchall()
+        tests = []
+        for pair in profile_all:
+            tests.append(pair[1])
+        profile = [sample_number, tests]
+        return profile

@@ -161,8 +161,3 @@ def generate_report_results(project_id):
     print(final_results)
 
     return final_results
-
-
-def generate_profile_list(project_id):
-    sample_numbers = database.get_sample_nums_for_project(project_id)
-    tests_list = database.get_test_profile_tests_only(project_id)
