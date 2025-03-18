@@ -315,6 +315,7 @@ def get_results_for_project(project_id):
         results = cursor.fetchall()
         return results
 
+
 def sample_profile_information(project_id, sample_number):
     with get_database_connection() as conn:
         cursor = conn.cursor()
@@ -328,3 +329,12 @@ def sample_profile_information(project_id, sample_number):
             tests.append(pair[1])
         profile = [sample_number, tests]
         return profile
+
+#Takes new results and updates the database
+def submit_edited_results(sample_num, test_id, new_result):
+    with get_database_connection() as conn:
+        cursor = conn.cursor()
+        query = """UPDATE Sample SET Result_Num = ? 
+                    WHERE Sample_Number = ? AND Test = ?"""
+        cursor.execute(query, (new_result, sample_num, test_id))
+        conn.commit()  # Save changes

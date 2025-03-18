@@ -2,7 +2,9 @@ import customtkinter as ctk
 from PIL import Image
 import database
 import functions
+import report
 import config
+from functools import partial
 
 # Logo images
 main_logo = ctk.CTkImage(light_image=Image.open('images/NotebookLogo.JPG'),
@@ -90,7 +92,6 @@ class BasePage(ctk.CTkToplevel):
         self.title_label = ctk.CTkLabel(self.frame_top, text=f"{title_text}", font=("", 20))
         self.title_label.grid(row=0, column=1, padx=10, pady=5)
 
-
 #ProjectSearchWindow configuration
 class ProjectSearchWindow(BasePage):
     def __init__(self, parent):
@@ -138,8 +139,8 @@ class ProjectSearchWindow(BasePage):
         if projects:
             for index, project in enumerate(projects):
                 project_id, status = project
-                label = ctk.CTkLabel(self.frame_middle, text=f'Project: {project_id} | Status: {status}', font=("TkDefaultFont", 16))
-                label.grid(row=index, column=0, padx=5, pady=5)
+                label = ctk.CTkLabel(self.frame_middle, text=f'Project: {project_id} | Status: {status}', font=("TkDefaultFont", 16), justify="left")
+                label.grid(row=index, column=0, padx=5, pady=5, sticky="w")
 
                 #Buttons to open various project windows
                 button_view = ctk.CTkButton(self.frame_middle, text="View Project", command=lambda p_id=project_id: self.open_project_window(p_id))
@@ -252,8 +253,6 @@ class ProjectDetailsWindow(BasePage):
                 else:
                     return
             column += 1
-
-
 
 #ResultEntryWindow configuration
 class ResultEntryWindow(BasePage):
@@ -538,30 +537,90 @@ class ResultReviewWindow(BasePage):
 
     def display_review_report(self):
         sql_test_list = database.get_test_list()
+        self.edited_results = {}
         row = 1
+
         for sample_num, sample_value in self.final_results.items():
-            result_strings = []  #Store test results as formatted strings
+            #Display sample header
+            label_sample = ctk.CTkLabel(self.frame_middle, text=f"Sample Number: {sample_num}", font=("TkDefaultFont", 16))
+            label_sample.grid(row=row, column=0, padx=5, pady=5, sticky="w")
+            row += 1  #Move to next row for tests
 
-            for test_id, result in sample_value:  #Unpack test_id and result
-                #Get test name from test_id
+            for test_id, result in sample_value:
                 test_name = next((key for key, value in sql_test_list.items() if value == test_id), "Unknown Test")
-
-                #Get the unit for the test (if available)
                 unit = config.result_units.get(test_name, "")
 
-                #Store formatted result for this test
-                result_strings.append(f"{test_name}: {result} {unit}".strip())
+                #Frame to store each test's widgets
+                test_frame = ctk.CTkFrame(self.frame_middle, fg_color="transparent")
+                test_frame.grid(row=row, column=0, padx=5, pady=5, sticky="w")
 
-            #Create a single string for this sample
-            result_text = f"Sample {sample_num}: " + " | ".join(result_strings)
+                #Label for result display
+                label_result = ctk.CTkLabel(test_frame, text=f"Test: {test_name} | Result: {result} {unit}", font=("TkDefaultFont", 14))
+                label_result.pack(side="left", padx=5)
 
-            #Debugging print
-            print(result_text)
+                #Entry box for editing (initially hidden)
+                entry_result = ctk.CTkEntry(test_frame, width=100)
+                entry_result.insert(0, str(result))  # Pre-fill with the existing result
+                entry_result.pack_forget()  # Hide initially
 
-            #Create a single label per sample
-            label_results = ctk.CTkLabel(self.frame_middle, text=result_text, font=("TkDefaultFont", 16))
-            label_results.grid(row=row, column=0, padx=5, pady=5)
-            row += 1  #Move to the next row for the next sample
+                #Accept button (initially hidden)
+                button_accept = ctk.CTkButton(test_frame, text="Accept", width=7)
+                button_accept.pack_forget()  # Hide initially
+
+                #Create Edit Button FIRST before referencing it
+                button_edit = ctk.CTkButton(test_frame, text="Edit", width=7)
+
+                #Function to enable editing mode
+                def enable_edit(entry=entry_result, label=label_result, edit_btn=button_edit, accept_btn=button_accept):
+                    label.pack_forget()  # Hide label
+                    entry.pack(side="left", padx=5)  # Show entry
+                    edit_btn.pack_forget()  # Hide edit button
+                    accept_btn.pack(side="left", padx=5)  # Show accept button
+
+                #Function to save edited value and restore display mode
+                def accept_edit(entry=entry_result, label=label_result, edit_btn=button_edit, accept_btn=button_accept, sample_num=sample_num, test_id=test_id):
+                    new_value = entry.get().strip()
+                    label.configure(text=f"Test: {test_name} | Result: {new_value} {unit}")
+                    entry.pack_forget()  #Hide entry box
+                    accept_btn.pack_forget()  #Hide accept button
+                    label.pack(side="left", padx=5)  #Show updated label
+                    edit_btn.pack(side="left", padx=5)  #Show edit button again
+
+                    print(f"current sample: {sample_num}, current test: {test_id}")
+                    self.edited_results[(sample_num, test_id)] = new_value
+                    print(self.edited_results)
+
+                #Edit and accept button configuration
+                button_edit.configure(command=partial(enable_edit, entry_result, label_result, button_edit, button_accept))
+                button_accept.configure(command=partial(accept_edit, entry_result, label_result, button_edit, button_accept, sample_num, test_id))
+
+                #Pack buttons after assigning correct commands
+                button_edit.pack(side="left", padx=5)
+
+                row += 1  #Move to next row for the next test
+
+        #Button to submit changes to the database
+        button_submit_changes = ctk.CTkButton(self.frame_middle, text="Accept Results", command=self.submit_changes)
+        button_submit_changes.grid(row=row + 1, column=0, padx=5, pady=5)
+
+    #Submit the changes to the database
+    def submit_changes(self):
+        if not self.edited_results:
+            print("No changes made.")
+            return
+
+        for (sample_num, test_id), new_value in self.edited_results.items():
+            print(f"Updating Sample {sample_num}, Test {test_id} to {new_value}")  # Debugging output
+
+            # Call the database update function
+            database.submit_edited_results(sample_num, test_id, new_value)
+
+        print("Database updated successfully.")
+        self.edited_results.clear()  # Clear edits after saving
+        database.change_project_status(self.project_id, "Closed")
+
+        label_successful_submission = ctk.CTkLabel(self.frame_bottom, text=f"Results submitted. Project {self.project_id} is closed.")
+        label_successful_submission.pack()
 
 #ProjectReportWindow configuration
 class ProjectReportWindow(BasePage):
@@ -569,6 +628,41 @@ class ProjectReportWindow(BasePage):
         super().__init__(parent, "Project Report")
 
         self.project_id = project_id
+        self.final_results = functions.generate_report_results(project_id)
+        self.project_profile = None
+
+        # Search button creation and placement
+        self.button_generate_report = ctk.CTkButton(self.frame_top, text="Generate Report", command=lambda: self.display_report_text())
+        self.button_generate_report.grid(row=1, column=1, padx=5, pady=5)
+
+
+        #self.display_report_text()
+    def display_report_text(self):
+        sql_test_list = database.get_test_list()
+        row = 1
+
+        for sample_num, sample_value in self.final_results.items():
+            result_strings = []  #Store test results as formatted strings
+
+            for test_id, result in sample_value:  #Unpack test_id and result
+                #Get test name from test_id
+                test_name = next((key for key, value in sql_test_list.items() if value == test_id), "Unknown Test")
+
+                #Get the unit for the test
+                unit = config.result_units.get(test_name, "")
+
+                #Store formatted result for this test
+                result_strings.append(f"Test: {test_name} | Result: {result} {unit}".strip())
+
+            #Create a multi-line string for this sample
+            result_text = f"Sample Number: {sample_num}\n\t" + "\n\t".join(result_strings)
+
+            #Create a single label per sample, displaying multiple lines
+            label_results = ctk.CTkLabel(self.frame_middle, text=result_text, font=("TkDefaultFont", 16), justify="left")
+            label_results.grid(row=row, column=0, padx=5, pady=5, sticky="w")
+            row += 1  #Move to the next row for the next sample
+
+        report.generate_report(self.project_id)
 
 #ProjectCreationWindow configuration
 class ProjectCreationWindow(BasePage):
@@ -621,15 +715,15 @@ class ProjectCreationWindow(BasePage):
             return
 
         # Display sample label
-        label_sample_id = ctk.CTkLabel(self.frame_bottom, text=f"Sample {self.current_sample}")
+        label_sample_id = ctk.CTkLabel(self.frame_middle, text=f"Sample {self.current_sample}")
         label_sample_id.grid(row=self.current_sample, column=0, padx=5, pady=5)
 
         # "+" Button to open test selection window
-        button_add_test = ctk.CTkButton(self.frame_bottom, text="+",width=7, command=self.open_test_selection_window)
+        button_add_test = ctk.CTkButton(self.frame_middle, text="+",width=7, command=self.open_test_selection_window)
         button_add_test.grid(row=self.current_sample, column=1, padx=5, pady=5)
 
         # "Submit" Button to finalize sample
-        button_submit = ctk.CTkButton(self.frame_bottom, text="Submit", command=self.finalize_sample)
+        button_submit = ctk.CTkButton(self.frame_middle, text="Submit", command=self.finalize_sample)
         button_submit.grid(row=self.current_sample, column=2, padx=5, pady=5)
 
     #Open the test selection window
@@ -682,7 +776,7 @@ class TestSelectionWindow(BasePage):
         self.checkbox_selection = {}
 
         #Creates the grid of selectable tests
-        self.generate_test_checkboxes(self.frame_bottom)
+        self.generate_test_checkboxes(self.frame_middle)
 
     def generate_test_checkboxes(self, frame):
         current_row = 0

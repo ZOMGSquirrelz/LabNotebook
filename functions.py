@@ -158,6 +158,5 @@ def generate_report_results(project_id):
             elif result[0] == sample and result[1] in config.pathogen_tests:
                 sample_results.append([result[1],  result[3]])
         final_results[sample] = sample_results
-    print(final_results)
 
     return final_results
