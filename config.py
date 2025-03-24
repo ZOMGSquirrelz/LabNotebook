@@ -1,4 +1,4 @@
-#Petrifilm ranges
+# Petrifilm ranges
 countable_ranges = {
     "APC Petrifilm": (25, 250),
     "E. Coli Petrifilm": (15, 150),
@@ -17,9 +17,22 @@ result_units = {
     "Received Temp": "\N{DEGREE SIGN}C"
 }
 
+valid_tests = [
+    "APC Petrifilm",
+    "E. Coli Petrifilm",
+    "Staph Petrifilm",
+    "Yeast Petrifilm",
+    "Mold Petrifilm",
+    "Listeria PCR",
+    "Salmonella PCR",
+    "Received Temp",
+    "pH",
+    "Moisture"
+]
+
 pathogen_results = ["Absence", "Presence"]
 
-#Result entry test list types
+# Result entry test list types
 petrifilm_tests = [2, 3, 4, 5, 6]
 pathogen_tests = [7, 8]
 chemistry_tests = [1, 9, 10]

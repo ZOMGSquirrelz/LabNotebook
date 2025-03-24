@@ -1,6 +1,7 @@
 import customtkinter as ctk
 from ui import MainPage
 
+
 class MyApp(ctk.CTk):
     def __init__(self):
         super().__init__()
@@ -10,6 +11,7 @@ class MyApp(ctk.CTk):
 
         self.main_page = MainPage(self)
         self.main_page.pack(fill="both", expand=True)
+
 
 if __name__ == "__main__":
 
