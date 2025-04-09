@@ -37,22 +37,22 @@ class MainPage(ctk.CTkFrame):
         self.create_project_button = ctk.CTkButton(self, text="New Project", command=self.open_project_creation_window)
         self.create_project_button.pack(pady=5)
 
-        # TEST BUTTON
-        self.create_project_button = ctk.CTkButton(self, text="TEST", command=lambda: self.show_tests())
-        self.create_project_button.pack(pady=5)
-
-        # Label for the test button output
-        self.label_test_list = ctk.CTkLabel(self, text="")
-        self.label_test_list.pack(pady=5)
+        # # TEST BUTTON
+        # self.create_project_button = ctk.CTkButton(self, text="TEST", command=lambda: self.show_tests())
+        # self.create_project_button.pack(pady=5)
+        #
+        # # Label for the test button output
+        # self.label_test_list = ctk.CTkLabel(self, text="")
+        # self.label_test_list.pack(pady=5)
 
         # Store reference to the project window
         self.project_creation_window = None
         self.project_search_window = None
 
-    # TEST STUFF
-    def show_tests(self):
-        self.success_window = SubmittedWindow(self, message="This is a test")
-        self.success_window.grab_set()
+    # # TEST STUFF
+    # def show_tests(self):
+    #     self.success_window = SubmittedWindow(self, message="This is a test")
+    #     self.success_window.grab_set()
 
     # Open ProjectSearchWindow if it isn't already open
     def open_project_search_window(self):
@@ -114,13 +114,18 @@ class ProjectSearchWindow(BasePage):
         self.selected_search_status = []
         self.list_of_status = database.get_status_list()
         self.status_vars = {}
+        self.adv_vars = {}
 
         self.frame_middle = ctk.CTkScrollableFrame(self, fg_color="transparent", width=950, height=500)
         self.frame_middle.grid(row=2, column=0, padx=5, pady=5, sticky="w")
 
+        self.frame_advanced = ctk.CTkFrame(self.frame_top, fg_color="transparent")
+        self.frame_advanced.grid(row=2, column=0, columnspan=10, sticky="w", padx=5, pady=5)
+        self.frame_advanced.grid_remove()
+
         # Search button creation and placement
-        self.button_search_all = ctk.CTkButton(self.frame_top, text="Search", command=lambda: self.search_projects())
-        self.button_search_all.grid(row=1, column=1, padx=5, pady=5)
+        self.button_search = ctk.CTkButton(self.frame_top, text="Search", command=lambda: self.search_projects())
+        self.button_search.grid(row=1, column=1, padx=5, pady=5)
 
         # Set up status filter checkboxes
         filter_start_column = 2
@@ -131,9 +136,71 @@ class ProjectSearchWindow(BasePage):
             self.status_vars[status] = var
             filter_start_column += 1
 
-        # Label to display the resulting projects
-        self.label_project_results = ctk.CTkLabel(self.frame_middle, text="")
-        self.label_project_results.grid(row=0, column=0, padx=5, pady=5)
+    # This chunk is an attempt at adding advanced search filters. Not currently working.
+    #     self.advanced_visible = False
+    #     self.button_adv_options= ctk.CTkButton(self.frame_top, text="+", width=15, command=lambda: self.toggle_advanced_search())
+    #     self.button_adv_options.grid(row=1, column=filter_start_column, padx=5, pady=5)
+    #
+    # def toggle_advanced_search(self):
+    #     if not self.advanced_visible:
+    #         self.advanced_visible = True
+    #         self.frame_advanced.grid()
+    #         self.advanced_search_setup()
+    #         self.button_adv_options.configure(text="-")
+    #     else:
+    #         self.advanced_visible = False
+    #         self.frame_advanced.grid_remove()
+    #         self.button_adv_options.configure(text="+")
+    #
+    # def advanced_search_setup(self):
+    #     options_list = ["Project Number", "Sample Number", "Start Date", "End Date"]
+    #
+    #     for widget in self.frame_advanced.winfo_children():
+    #         widget.destroy()
+    #
+    #
+    #     options_start_column = 2
+    #     for i, option in enumerate(options_list):
+    #         label = ctk.CTkLabel(self.frame_advanced, text=option)
+    #         label.grid(row=2, column=i + 2, padx=5, pady=5)
+    #
+    #         var = ctk.StringVar()
+    #         entry = ctk.CTkEntry(self.frame_advanced, textvariable=var)
+    #         entry.grid(row=3, column=i + 2, padx=5, pady=5)
+    #         self.adv_vars[option] = var
+    #
+    #     # Advanced search functions
+    #     self.button_adv_search = ctk.CTkButton(self.frame_advanced, text="Advanced Search", command=lambda: self.adv_search_projects())
+    #     self.button_adv_search.grid(row=2, column=1, padx=5, pady=5)
+    #
+    # def adv_search_projects(self):
+    #     project_num = self.adv_vars["Project Number"].get().strip()
+    #     if project_num:
+    #         Validator.is_valid_integer(int(project_num), min_value=1)
+    #     sample_num = self.adv_vars["Sample Number"].get().strip()
+    #     if sample_num:
+    #         Validator.is_valid_integer(int(sample_num), min_value=1)
+    #     start_date = self.adv_vars["Start Date"].get().strip()
+    #     if start_date:
+    #         Validator.is_valid_date(start_date)
+    #     end_date = self.adv_vars["End Date"].get().strip()
+    #     if end_date:
+    #         Validator.is_valid_date(end_date)
+    #     if start_date != None and end_date != None:
+    #         Validator.is_valid_date_order(start_date, end_date)
+    #
+    #     selected_options_list = [option for option, input in self.adv_vars.items() if input.get()]
+    #
+    #     if len(selected_options_list) == 0:
+    #         self.search_projects()
+    #     else:
+    #         database.get_advanced_filtered_projects_list(self.adv_vars)
+    #     print(selected_options_list)
+    #     print("Advanced Filters:")
+    #     print("Project:", project_num)
+    #     print("Sample:", sample_num)
+    #     print("Start:", start_date)
+    #     print("End:", end_date)
 
     def search_projects(self):
         self.selected_search_status = [status for status, var in self.status_vars.items() if var.get()]
@@ -146,7 +213,7 @@ class ProjectSearchWindow(BasePage):
         for widget in self.frame_middle.winfo_children():
             widget.destroy()
 
-        if projects:
+        if projects != None:
             for index, project in enumerate(projects):
                 project_id, status = project
                 label = ctk.CTkLabel(self.frame_middle, text=f'Project: {project_id} | Status: {status}', font=("TkDefaultFont", 16), justify="left")
@@ -179,7 +246,8 @@ class ProjectSearchWindow(BasePage):
                     button_review.configure(state="disabled")
                     button_report.configure(state="disabled")
         else:
-            self.label_project_results.configure(text="No projects found.")
+            self.label_project_results = ctk.CTkLabel(self.frame_middle, text="No projects found.")
+            self.label_project_results.grid(row=0, column=0, padx=5, pady=5)
 
     # Open ProjectDetailsWindow if it isn't already open
     def open_project_window(self, project_id):
@@ -237,7 +305,7 @@ class ProjectDetailsWindow(BasePage):
         ProjectDetailsWindow.destroy(self)
 
     def create_project_profile_grid(self):
-        sample_numbers = database.get_sample_nums_for_project(self.project_id)
+        sample_numbers = database.get_sample_numbers_for_project(self.project_id)
         test_list = database.get_test_profile_tests_only(self.project_id)
         indexed_test_list = list(enumerate(test_list))
 
@@ -390,7 +458,7 @@ class ResultEntryWindow(BasePage):
         button_submit.grid(row=1, column=2, padx=5, pady=5)
 
     # Gets the chemistry result entry
-    def get_chemistry_result_entry(self):
+    def get_chemistry_result_entry(self, event=None):
         # Error handling for result entry
         try:
             if self.selected_option.get() == "pH" or self.selected_option.get() == "Moisture":
@@ -562,6 +630,7 @@ class ResultReviewWindow(BasePage):
         self.button_view_report = ctk.CTkButton(self.frame_top, text="View Report", command=lambda: self.display_review_report())
         self.button_view_report.grid(row=1, column=1, padx=5, pady=5)
 
+
     def display_review_report(self):
         sql_test_list = database.get_test_list()
         self.edited_results = {}
@@ -582,7 +651,7 @@ class ResultReviewWindow(BasePage):
                 test_frame.grid(row=row, column=0, padx=5, pady=5, sticky="w")
 
                 # Labels for result display
-                label_test = ctk.CTkLabel(test_frame, text=f"Test: {test_name} |", font=("TkDefaultFont", 14))
+                label_test = ctk.CTkLabel(test_frame, text=f"\tTest: {test_name} |", font=("TkDefaultFont", 14))
                 label_test.pack(side="left", padx=5)
 
                 label_result = ctk.CTkLabel(test_frame, text=f" Result: {result} {unit}", font=("TkDefaultFont", 14))
@@ -609,16 +678,24 @@ class ResultReviewWindow(BasePage):
 
                 # Function to save edited value and restore display mode
                 def accept_edit(entry=entry_result, label=label_result, edit_btn=button_edit, accept_btn=button_accept, sample_num=sample_num, test_id=test_id):
-                    new_value = entry.get().strip()                                             # EDIT THIS FOR RESULT VALIDATION BASED ON TEST TYPE
+                    new_value = ""
+                    if test_id in config.petrifilm_tests:
+                        new_value = Validator.is_valid_integer(entry.get().strip())                                             # EDIT THIS FOR RESULT VALIDATION BASED ON TEST TYPE
+                    elif test_id in config.chemistry_tests:
+                        if test_id == 9 or test_id == 10:
+                            new_value = Validator.is_valid_ph_moisture_result(entry.get().strip())
+                        else:
+                            new_value = Validator.is_valid_float(entry.get().strip())
+                    elif test_id in config.pathogen_tests:
+                        new_value = Validator.is_valid_pathogen_result(entry.get().strip())
+
                     label.configure(text=f" Result: {new_value} {unit}")
                     entry.pack_forget()  # Hide entry box
                     accept_btn.pack_forget()  # Hide accept button
                     label.pack(side="left", padx=5)  # Show updated label
                     edit_btn.pack(side="left", padx=5)  # Show edit button again
 
-                    print(f"current sample: {sample_num}, current test: {test_id}")
                     self.edited_results[(sample_num, test_id)] = new_value
-                    print(self.edited_results)
 
                 # Edit and accept button configuration
                 button_edit.configure(command=partial(enable_edit, entry_result, label_result, button_edit, button_accept))
@@ -638,9 +715,6 @@ class ResultReviewWindow(BasePage):
 
     # Submit the changes to the database
     def submit_changes(self):
-        # if not self.edited_results:
-        #     print("No changes made.")
-        #     return
 
         for (sample_num, test_id), new_value in self.edited_results.items():
             # Call the database update function

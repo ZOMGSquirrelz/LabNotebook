@@ -4,6 +4,7 @@ import config
 import functions
 from dotenv import load_dotenv
 import os
+import customtkinter as ctk
 
 
 load_dotenv()
@@ -56,16 +57,16 @@ def get_status_list():
             status_list.append(status[0])
         return status_list
 
-
-def get_test_id_by_test_name(test_name):
-    with get_database_connection() as conn:
-        cursor = conn.cursor()
-        query = """SELECT Test_LU.Test_ID 
-                    FROM Test_LU
-                    WHERE Test = ?"""
-        cursor.execute(query, test_name)
-        test_id = cursor.fetchone()[0]
-        return test_id
+#
+# def get_test_id_by_test_name(test_name):
+#     with get_database_connection() as conn:
+#         cursor = conn.cursor()
+#         query = """SELECT Test_LU.Test_ID
+#                     FROM Test_LU
+#                     WHERE Test = ?"""
+#         cursor.execute(query, test_name)
+#         test_id = cursor.fetchone()[0]
+#         return test_id
 
 
 # Returns current project number from the SQL table
@@ -140,6 +141,48 @@ def get_all_projects_list():
         return total_projects_list
 
 
+# # Function to get the projects list based on the advanced filters entered. Not currently working
+# def get_advanced_filtered_projects_list(adv_list):
+#     with get_database_connection() as conn:
+#         cursor = conn.cursor()
+#         base_query = """SELECT project.Project_ID, status.Status
+#                         FROM Project as project
+#                         JOIN Status_LU AS status ON project.Status=status.Status_ID
+#                         WHERE 1=1"""
+#         '''
+#         Query as it would be used in SQL for reference
+#         SELECT DISTINCT project.Project_ID, status.Status
+#             FROM Project as project
+#             JOIN Status_LU AS status ON project.Status=status.Status_ID
+#             JOIN Sample AS sample ON project.Project_ID=sample.Project_ID
+#             WHERE 1=1 AND project.Project_ID = 12 AND sample.Sample_Number = 7 AND project.Date_Created BETWEEN "2025-1-29" AND "2025-3-3"'''
+#         query_conditions = []
+#         query_values = []
+#
+#         for option, value in adv_list.items():
+#             if option == "Project Number":
+#                 if value:
+#                     query_conditions.append('project.Project_ID = ?')
+#                     query_values.append(value.get() if isinstance(value, ctk.StringVar) else value)
+#             elif option == "Sample Number":
+#                 if value:
+#                     query_conditions.append('sample.Sample_Number = ?')
+#                     query_values.append(value.get() if isinstance(value, ctk.StringVar) else value)
+#
+#         if query_conditions:
+#             base_query += " AND " + " AND ".join(query_conditions)
+#
+#         print(base_query)
+#         cursor.execute(base_query, query_values)
+#         adv_projects_list = cursor.fetchall()
+#         if adv_projects_list:
+#             print(adv_projects_list)
+#             return adv_projects_list
+#         else:
+#             adv_projects_list = None
+#             print(adv_projects_list)
+#             return adv_projects_list
+
 # Pull project information based on filters
 def get_filtered_projects_list(status_list):
     with get_database_connection() as conn:
@@ -152,8 +195,13 @@ def get_filtered_projects_list(status_list):
                     ORDER BY project.Project_ID"""
         cursor.execute(query, tuple(status_list))
         filtered_projects_list = cursor.fetchall()
-        print(filtered_projects_list)
-        return filtered_projects_list
+        if filtered_projects_list:
+            print(filtered_projects_list)
+            return filtered_projects_list
+        else:
+            filtered_projects_list = None
+            print(filtered_projects_list)
+            return filtered_projects_list
 
 
 # Gets project status from database
@@ -203,17 +251,17 @@ def get_test_profile_tests_only(project_id):
 
 
 # Gets all sample numbers for a project
-def get_sample_nums_for_project(project_id):
+def get_sample_numbers_for_project(project_id):
     with get_database_connection() as conn:
         cursor = conn.cursor()
         query = """SELECT DISTINCT Sample.Sample_Number FROM Sample 
                     WHERE Sample.Project_ID = ?"""
         cursor.execute(query, project_id)
-        results = cursor.fetchall()
-        samples = []
-        for sample in results:
-            samples.append(sample[0])
-        return samples
+        query_results = cursor.fetchall()
+        sample_numbers = []
+        for sample in query_results:
+            sample_numbers.append(sample[0])
+        return sample_numbers
 
 
 # Gets samples to enter based on project ID and selected test
@@ -223,11 +271,11 @@ def get_samples_to_enter(project_id, test):
         query = """SELECT Sample.Sample_ID, Sample.Sample_Number FROM Sample
                     WHERE Sample.Project_ID = ? AND Sample.Test = ?"""
         cursor.execute(query, project_id, test)
-        results = cursor.fetchall()
-        results.sort()
+        query_results = cursor.fetchall()
+        query_results.sort()
         sample_id_list = []
         sample_number_list = []
-        for values in results:
+        for values in query_results:
             sample_id_list.append(values[0])
             sample_number_list.append(values[1])
         return sample_id_list, sample_number_list
@@ -240,9 +288,9 @@ def check_all_samples_entered(project_id):
         query = """SELECT Sample.Sample_Complete FROM Sample
                 WHERE Sample.Project_ID = ?"""
         cursor.execute(query, project_id)
-        returned_list = cursor.fetchall()
+        query_results = cursor.fetchall()
         completed_list = []
-        for check in returned_list:
+        for check in query_results:
             completed_list.append(check[0])
         if all(completed_list):
             change_project_status(project_id, "Review")
@@ -327,16 +375,18 @@ def check_entry_complete_for_test(project_id):
         return tests_list
 
 
+# Gets the results that are stored in database for a specific project
 def get_results_for_project(project_id):
     with get_database_connection() as conn:
         cursor = conn.cursor()
         query = """SELECT Sample.Sample_Number, Sample.Test, Sample.Result_Num, Sample.Result_Non_Num FROM Sample
                     WHERE Sample.Project_ID = ?"""
         cursor.execute(query, project_id)
-        results = cursor.fetchall()
-        return results
+        query_results = cursor.fetchall()
+        return query_results
 
 
+# Get the test list for specific sample and project
 def sample_profile_information(project_id, sample_number):
     with get_database_connection() as conn:
         cursor = conn.cursor()

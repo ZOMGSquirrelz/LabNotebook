@@ -159,7 +159,7 @@ def store_selected_tests(test_results, sample_id, selected_tests):
 
 # Generates a dictionary of the [test, result] pairing by sample
 def generate_report_results(project_id):
-    sample_numbers = database.get_sample_nums_for_project(project_id)
+    sample_numbers = database.get_sample_numbers_for_project(project_id)
     results_list = database.get_results_for_project(project_id)
     final_results = {}
     for sample in sample_numbers:
