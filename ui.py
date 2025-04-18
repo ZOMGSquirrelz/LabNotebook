@@ -29,13 +29,13 @@ class MainPage(ctk.CTkFrame):
         self.label_logo = ctk.CTkLabel(self, image=main_logo, text="")
         self.label_logo.pack(pady=10)
 
-        # Currently a test button
-        self.test_button = ctk.CTkButton(self, text="Search for Project", command=self.open_project_search_window)
-        self.test_button.pack(pady=5)
-
         # Button to open the new project creation window - ProjectCreationWindow
         self.create_project_button = ctk.CTkButton(self, text="New Project", command=self.open_project_creation_window)
         self.create_project_button.pack(pady=5)
+
+        # Currently a test button
+        self.search_button = ctk.CTkButton(self, text="Search for Project", command=self.open_project_search_window)
+        self.search_button.pack(pady=5)
 
         # # TEST BUTTON
         # self.create_project_button = ctk.CTkButton(self, text="TEST", command=lambda: self.show_tests())
@@ -439,7 +439,6 @@ class ResultEntryWindow(BasePage):
         if self.sample_index >= len(self.sample_number_list):
             label_completed = ctk.CTkLabel(self.frame_bottom, text=f'All samples completed for {self.selected_option.get()}')
             label_completed.grid(row=0, column=0, padx=5, pady=5)
-            print("All samples completed!", self.result_counts)
             self.display_final_results()
             return
 
@@ -487,7 +486,6 @@ class ResultEntryWindow(BasePage):
         if self.sample_index >= len(self.sample_number_list):
             label_completed = ctk.CTkLabel(self.frame_bottom, text=f'All samples completed for {self.selected_option.get()}')
             label_completed.grid(row=0, column=0, padx=5, pady=5)
-            print("All samples completed!", self.result_counts)
             self.display_final_results()
             return
 
@@ -509,7 +507,6 @@ class ResultEntryWindow(BasePage):
         if self.sample_index >= len(self.sample_number_list):
             label_completed = ctk.CTkLabel(self.frame_bottom, text=f'All samples completed for {self.selected_option.get()}')
             label_completed.grid(row=0, column=0, padx=5, pady=5)
-            print("All samples completed!", self.result_counts)
             self.display_final_results()
             return
 
@@ -526,7 +523,7 @@ class ResultEntryWindow(BasePage):
         self.entry_dilutions.bind("<Return>", self.prompt_lowest_dilution)      # On 'Enter' press, prompts lowest dilution
 
     # Prompts user for lowest dilution for the sample
-    def prompt_lowest_dilution(self):
+    def prompt_lowest_dilution(self, event=None):
         # Error handling for dilution count entry
         try:
             self.num_dilutions = Validator.is_valid_integer(self.entry_dilutions.get().strip(), min_value=1, max_value=4)
@@ -547,7 +544,7 @@ class ResultEntryWindow(BasePage):
         self.entry_lowest_dilution.bind("<Return>", self.create_dilution_rows)
 
     # Creates the entry boxes for the number of dilutions
-    def create_dilution_rows(self):
+    def create_dilution_rows(self, event=None):
         # Error handling for lowest dilution entry
         try:
             self.lowest_dilution = Validator.is_valid_integer(self.entry_lowest_dilution.get().strip(), min_value=0, max_value=7)
@@ -588,8 +585,6 @@ class ResultEntryWindow(BasePage):
         button_submit = ctk.CTkButton(self.frame_bottom, text="Submit", command=self.store_petrifilm_results)
         button_submit.grid(row=self.num_dilutions + 1, column=1, padx=5, pady=5)
 
-        print(f'Dilution_entries: {self.dilution_entries}')
-
     # Stores the submitted results in results_counts
     def store_petrifilm_results(self):
         sample_number = self.sample_number_list[self.sample_index]
@@ -602,11 +597,9 @@ class ResultEntryWindow(BasePage):
                 sample_results.append([dilution_factor, count])
             except ValueError:
                 print(f"Invalid count for dilution {dilution_factor}, skipping...")
-        print(f'sample results: {sample_results}')
         sql_test = functions.convert_to_test_name_from_sql_code(self.get_selected_option())
         final_result = functions.compare_to_countable_range(sql_test, sample_results)
         self.result_counts.append([sample_number, final_result])
-        print(f'Result counts: {self.result_counts}')
 
         self.sample_index += 1      # Move to next sample
         for widget in self.frame_bottom.winfo_children():       # Clears frame of previous entries
@@ -847,7 +840,6 @@ class ProjectCreationWindow(BasePage):
     # Compile the selected test for the sample and move to the next sample
     def finalize_sample(self):
         if self.current_sample in self.test_profile and self.test_profile[self.current_sample]:
-            print(f'Sample {self.current_sample} tests: {self.test_profile[self.current_sample]}')
             self.current_sample += 1
             self.display_sample_row()
         else:

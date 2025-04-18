@@ -4,7 +4,6 @@ import config
 import functions
 from dotenv import load_dotenv
 import os
-import customtkinter as ctk
 
 
 load_dotenv()
@@ -56,17 +55,6 @@ def get_status_list():
         for status in cursor.fetchall():
             status_list.append(status[0])
         return status_list
-
-#
-# def get_test_id_by_test_name(test_name):
-#     with get_database_connection() as conn:
-#         cursor = conn.cursor()
-#         query = """SELECT Test_LU.Test_ID
-#                     FROM Test_LU
-#                     WHERE Test = ?"""
-#         cursor.execute(query, test_name)
-#         test_id = cursor.fetchone()[0]
-#         return test_id
 
 
 # Returns current project number from the SQL table
@@ -196,11 +184,9 @@ def get_filtered_projects_list(status_list):
         cursor.execute(query, tuple(status_list))
         filtered_projects_list = cursor.fetchall()
         if filtered_projects_list:
-            print(filtered_projects_list)
             return filtered_projects_list
         else:
             filtered_projects_list = None
-            print(filtered_projects_list)
             return filtered_projects_list
 
 

@@ -1,4 +1,3 @@
-import config
 from customtkinter import CTkToplevel, CTkLabel, CTkButton
 from datetime import datetime
 
